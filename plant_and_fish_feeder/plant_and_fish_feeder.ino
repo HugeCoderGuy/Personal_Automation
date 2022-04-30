@@ -18,4 +18,7 @@ void loop() {
   int percentageHumididyB = map(sensorB, wetB, dryB, 100, 0); 
   delay(100);
   Serial.println(percentageHumididyA);
+//  if percentageHumididyA < 40{
+//    
+//  }
 }
