@@ -19,8 +19,6 @@ pm25 = PM25_UART(uart, reset_pin)
 print("Found PM2.5 sensor, reading data...")
 
 while True:
-    reset_pin.value = False
-    reset_pin.value = True
 
 
     try:

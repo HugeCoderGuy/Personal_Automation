@@ -7,9 +7,11 @@ from digitalio import DigitalInOut, Direction, Pull
 from adafruit_pm25.uart import PM25_UART
 import serial
 from RPLCD import CharLCD
+from RPi import GPIO
+
 
 #include neopixel lib later
-
+GPIO.setmode(GPIO.BCM)
 
 def aqi_api(city_or_station_name):
     # Input: string of city or station idx followed by @ (ex. '@3894')
@@ -50,30 +52,31 @@ def aqiSensor():
         return [aqdata["pm10 standard"], aqdata["pm25 standard"]]
 
 
-def LCD_Setup():
-    # Input: string with message to display
-    # Output: image displayed on LCD
-    # Notes:
+
 
 
 # -------- Main --------
 # Initialize Reset Pin
-reset_pin = DigitalInOut(board.D0)
-reset_pin.direction = Direction.OUTPUT
-reset_pin.value = False
+reset_pin = None
+# reset_pin = DigitalInOut(board.D0)
+# reset_pin.direction = Direction.OUTPUT
+# reset_pin.value = False
 
 # Initialize UART pin
 uart = serial.Serial("/dev/ttyS0", baudrate=9600, timeout=1)
 pm25 = PM25_UART(uart, reset_pin)
 
 # LCD Setup
-lcd = CharLCD(cols=16, rows=2, pin_rs=37, pin_e=35, pins_data=[33, 31, 29, 23])
+lcd = CharLCD(numbering_mode=GPIO.BOARD, cols=16, rows=2, pin_rs=37, pin_e=35, pins_data=[33, 31, 29, 23])
 
 # Collect current AQI Measurements
-outside_aqi = aqi_api('@3894')
+# outside_aqi = aqi_api('@3894')
+outside_aqi = ['1', '2']
 sensor_aqi = aqiSensor()
 oak_town = "Oakland AQI: " + outside_aqi[0] + "   pm2.5: " + outside_aqi[1]
-boat_town = "Boat pm2.5: " + sensor_aqi[1] + "\tpm1: " + sensor_aqi[0]
+boat_town = "Boat pm2.5: " + str(sensor_aqi[1]) + "\tpm1: " + str(sensor_aqi[0])
+print('test')
 lcd.write_string(oak_town)
+print('test2')
 lcd.cursor_pos = (1, 0)
 lcd.write_string(aqiSensor())
