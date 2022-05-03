@@ -1,12 +1,15 @@
 #include <Adafruit_NeoPixel.h>
+//OTE TO SELF, PI IS PULLED UP SO YOU EED TO SWITCH TRIGGER STATE TO FALLIG
+//AD CHECK STATE TO LOW
+
 
 //////////////////////////////Pixel Setup///////////////////////////////
-bool pixel_state =    false;
 uint16_t hue =        0;
+bool pixel_state;
 #define LED    6
 
 // How many NeoPixels are attached to the Arduino?
-#define LED_COUNT 60
+#define LED_COUNT 4
 
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(LED_COUNT, LED, NEO_GRB + NEO_KHZ800);
@@ -26,7 +29,7 @@ int     button_switch =                       2; // external interrupt pin
 
 #define switched                            true // value if the button switch has been pressed
 #define triggered                           true // controls interrupt handler
-#define interrupt_trigger_type            RISING // interrupt triggered on a RISING input
+#define interrupt_trigger_type            FALLING// interrupt triggered on a RISING input
 #define debounce                              10 // time to wait in milli secs
 
 volatile  bool interrupt_process_status = {
@@ -45,7 +48,7 @@ void button_interrupt_handler()
       // new interrupt so okay start a new button read process -
       // now need to wait for button release plus debounce period to elapse
       // this will be done in the button_read function
-      if (digitalRead(button_switch) == HIGH) {
+      if (digitalRead(button_switch) == LOW) {
         // button pressed, so we can start the read on/off + debounce cycle wich will
         // be completed by the button_read() function.
         interrupt_process_status = triggered;  // keep this ISR 'quiet' until button read fully completed
@@ -64,12 +67,12 @@ bool read_button() {
     // the button read process, ie wait until it has been released
     // and debounce time elapsed
     button_reading = digitalRead(button_switch);
-    if (button_reading == HIGH) {
+    if (button_reading == LOW) {
       // switch is pressed, so start/restart wait for button relealse, plus end of debounce process
       switching_pending = true;
       elapse_timer = millis(); // start elapse timing for debounce checking
     }
-    if (switching_pending && button_reading == LOW) {
+    if (switching_pending && button_reading == HIGH) {
       // switch was pressed, now released, so check if debounce time elapsed
       if (millis() - elapse_timer >= debounce) {
         // dounce time elapsed, so switch press cycle complete
@@ -83,8 +86,11 @@ bool read_button() {
 } // end of read_button function
 
 void setup() {
+  Serial.begin(9600);
+  bool pixel_state = false;
   strip.begin();
-  strip.show(); // Initialize all pixels to 'off'  pinMode(button_switch, INPUT);
+  strip.show(); // Initialize all pixels to 'off'
+  pinMode(button_switch, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(button_switch),
                   button_interrupt_handler,
                   interrupt_trigger_type);
@@ -95,7 +101,16 @@ void loop() {
   // test buton switch and process if pressed
   if (read_button() == switched) {
     // button on/off cycle now complete, so flip LED between HIGH and LOW
-    pixel_state = !pixel_state;
+//    pixel_state == !pixel_state;
+    if (pixel_state == true) {
+      pixel_state == false;
+      Serial.println("oow truw");
+    } else{
+      pixel_state == true;
+      Serial.println("false!");
+    }
+    Serial.println("button pressed");
+    Serial.println(pixel_state);
   } if (pixel_state = true) {
     uint32_t rgbcolor = strip.ColorHSV(hue);
     strip.fill(rgbcolor);
