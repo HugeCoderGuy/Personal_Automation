@@ -1,6 +1,4 @@
 #include <Adafruit_NeoPixel.h>
-//OTE TO SELF, PI IS PULLED UP SO YOU EED TO SWITCH TRIGGER STATE TO FALLIG
-//AD CHECK STATE TO LOW
 
 
 //////////////////////////////Pixel Setup///////////////////////////////
@@ -12,7 +10,7 @@ bool pixel_state;
 #define LED_COUNT 4
 
 // Declare our NeoPixel strip object:
-Adafruit_NeoPixel strip(LED_COUNT, LED, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip(LED_COUNT, LED);
 // Argument 1 = Number of pixels in NeoPixel strip
 // Argument 2 = Arduino pin number (most are valid)
 // Argument 3 = Pixel type flags, add together as needed:
@@ -101,24 +99,30 @@ void loop() {
   // test buton switch and process if pressed
   if (read_button() == switched) {
     // button on/off cycle now complete, so flip LED between HIGH and LOW
-//    pixel_state == !pixel_state;
-    if (pixel_state == true) {
-      pixel_state == false;
-      Serial.println("oow truw");
-    } else{
-      pixel_state == true;
-      Serial.println("false!");
-    }
+    Serial.println("fuck "); Serial.println(pixel_state);
+    pixel_state = !pixel_state;
+    Serial.println(pixel_state);
+//    if (pixel_state == true) {
+//      pixel_state = false;
+//      Serial.println("oow truw");
+//    } else{
+//      pixel_state = true;
+//      Serial.println("false!");
+//    }
     Serial.println("button pressed");
     Serial.println(pixel_state);
-  } if (pixel_state = true) {
+  } if (pixel_state == true) {
     uint32_t rgbcolor = strip.ColorHSV(hue);
     strip.fill(rgbcolor);
-    hue++; 
-    hue++;
+    strip.show();
+    hue += 50;
     // Prevet overflow of hue variable
-    if (hue = 65534) {
+    if (hue >= 65534) {
       hue = 0;
     }
+  } else {
+    strip.fill(0, 0, 0);
+    strip.show();
   }
+  
 }
