@@ -2,6 +2,7 @@
 #include <SoftwareSerial.h>
 #include <DHT.h>;
 #include <Adafruit_NeoPixel.h>
+#include <ArduinoJson.h>
 
 
 
@@ -11,7 +12,9 @@
 /// ESP WIFI
 String myAPIkey = "6YCDUHSJGWKFG6L0";
 
-SoftwareSerial ESP8266(2, 3); // Rx,  Tx
+String aqi_url = "http://api.waqi.info/feed/3895/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
+
+SoftwareSerial ESP8266(3, 4); // Rx,  Tx
 
 #define DHTTYPE DHT11
 #define DHTPIN  A0
@@ -68,7 +71,6 @@ void readSensors(void)
 void writeThingSpeak(void)
 {
   startThingSpeakCmd();
-  Serial.println(temp_f, humidity);
   // preparacao da string GET
   String getStr = "GET /update?api_key=";
   getStr += myAPIkey;
@@ -128,6 +130,71 @@ String GetThingspeakcmd(String getStr)
     Serial.println("AT+CIPCLOSE");
   }
 }
+
+
+// AQI API Call
+void writeAQIapi(void)
+{
+  startAQIapi();
+  // preparacao da string GET
+  String getStr = "GET ";
+  getStr += aqi_url;
+  getStr += "\r\n\r\n";
+  GetAQIapi(getStr);
+}
+
+
+void startAQIapi(void)
+{
+  ESP8266.flush();
+  String cmd = "AT+CIPSTART=\"TCP\",\"";
+  cmd += "172.105.192.79"; // IPv4 Address for aqicn.org
+  cmd += "\",80";
+  ESP8266.println(cmd);
+  Serial.print("Start Commands: ");
+  Serial.println(cmd);
+
+  if(ESP8266.find("Error"))
+  {
+    Serial.println("AT+CIPSTART error");
+    return;
+  }
+}
+
+String GetAQIapi(String getStr)
+{
+  String cmd = "AT+CIPSEND=";
+  cmd += String(getStr.length());
+  ESP8266.println(cmd);
+  Serial.println(cmd);
+
+  if(ESP8266.find(">"))
+  {
+    ESP8266.print(getStr);
+    Serial.println(getStr);
+    delay(500);
+    String messageBody = "";
+    while (ESP8266.available())
+    {
+      String line = ESP8266.readStringUntil('\n');
+      if (line.length() == 1)
+      {
+        messageBody = ESP8266.readStringUntil('\n');
+      }
+    }
+    Serial.print("MessageBody received: ");
+    Serial.println(messageBody);
+    return messageBody;
+  }
+  else
+  {
+    ESP8266.println("AT+CIPCLOSE");
+    Serial.println("AT+CIPCLOSE");
+  }
+}
+
+
+
 
 // Butto iterrupt fuctios
 //
@@ -223,6 +290,13 @@ void loop()
   {
     readSensors();
     writeThingSpeak();
+    Serial.print("pray");
+    writeAQIapi();
+    //JsonObject& root = jsonBuffer.parseObject(writeAQIapi());
+    //if(!root.success()) {
+    //Serial.println("parseObject() failed");
+    //return false;
+  //}
     startTime = millis();
   }
 
@@ -245,5 +319,4 @@ void loop()
     strip.show();
   }
 
-}
 }

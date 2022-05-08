@@ -99,18 +99,8 @@ void loop() {
   // test buton switch and process if pressed
   if (read_button() == switched) {
     // button on/off cycle now complete, so flip LED between HIGH and LOW
-    Serial.println("fuck "); Serial.println(pixel_state);
     pixel_state = !pixel_state;
-    Serial.println(pixel_state);
-//    if (pixel_state == true) {
-//      pixel_state = false;
-//      Serial.println("oow truw");
-//    } else{
-//      pixel_state = true;
-//      Serial.println("false!");
-//    }
-    Serial.println("button pressed");
-    Serial.println(pixel_state);
+
   } if (pixel_state == true) {
     uint32_t rgbcolor = strip.ColorHSV(hue);
     strip.fill(rgbcolor);
