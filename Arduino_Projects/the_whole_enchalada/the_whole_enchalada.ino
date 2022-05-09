@@ -5,14 +5,13 @@
 #include <ArduinoJson.h>
 
 
-
 ///////////// Variable Decleratio /////////////
 
 
 /// ESP WIFI
 String myAPIkey = "6YCDUHSJGWKFG6L0";
 
-String aqi_url = "http://api.waqi.info/feed/3895/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
+String aqi_url = "http://api.waqi.info/feed/Alameda/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
 
 SoftwareSerial ESP8266(3, 4); // Rx,  Tx
 
@@ -137,8 +136,9 @@ void writeAQIapi(void)
 {
   startAQIapi();
   // preparacao da string GET
-  String getStr = "GET ";
-  getStr += aqi_url;
+  //String getStr = "GET /feed/Alameda/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
+  //String getStr = "GET /aq/forecast/zipCode/94501/date//format/text/csv/distance//api_key/33628645-4EE3-4D27-A826-479EDB82E726";
+  String getStr = "GET /aq/observation/latLong/current/?format=text/csv&latitude=37.7878&longitude=-122.2744&distance=25&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726";
   getStr += "\r\n\r\n";
   GetAQIapi(getStr);
 }
@@ -148,7 +148,8 @@ void startAQIapi(void)
 {
   ESP8266.flush();
   String cmd = "AT+CIPSTART=\"TCP\",\"";
-  cmd += "172.105.192.79"; // IPv4 Address for aqicn.org
+  //cmd += "172.105.192.79"; // IPv4 Address for aqicn.org
+  cmd += "134.67.21.55";
   cmd += "\",80";
   ESP8266.println(cmd);
   Serial.print("Start Commands: ");
@@ -176,11 +177,17 @@ String GetAQIapi(String getStr)
     String messageBody = "";
     while (ESP8266.available())
     {
-      String line = ESP8266.readStringUntil('\n');
-      if (line.length() == 1)
-      {
-        messageBody = ESP8266.readStringUntil('\n');
-      }
+      Serial.println(ESP8266.readStringUntil('\n')); 
+//      String line = ESP8266.readStringUntil('\n');
+//      if (line.length() == 1)
+//      {
+//        messageBody = ESP8266.readStringUntil('\n');
+//        Serial.println(messageBody);
+//        messageBody += ESP8266.readStringUntil('\n');
+//        Serial.println(messageBody);
+//        messageBody += ESP8266.readStringUntil('\n');
+//        Serial.println(messageBody);
+//      }
     }
     Serial.print("MessageBody received: ");
     Serial.println(messageBody);
@@ -291,6 +298,11 @@ void loop()
     readSensors();
     writeThingSpeak();
     Serial.print("pray");
+//    http.begin("http://api.openweathermap.org/data/2.5/weather?q=London,uk&APPID=1041444a18cfb8448343254a45721b1d");
+//    String payload = http.getString();   //Get the request response payload
+//    JsonObject& root = jsonBuffer.parseObject(payload);
+//    float temp = (float)(root["main"]["temp"]) - 273.15;    // get temperature
+//    Serial.print(temp)
     writeAQIapi();
     //JsonObject& root = jsonBuffer.parseObject(writeAQIapi());
     //if(!root.success()) {
