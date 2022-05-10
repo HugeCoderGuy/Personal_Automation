@@ -10,10 +10,12 @@
 
 /// ESP WIFI
 String myAPIkey = "6YCDUHSJGWKFG6L0";
-
+String iq_air_key = "7cf2a06d-08f8-470d-9da2-7d63e31db776";
 String aqi_url = "http://api.waqi.info/feed/Alameda/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
+String weatherbit_key = "47b0a5c7a0ba4c9bb10b4c6161315faa";
 
 SoftwareSerial ESP8266(3, 4); // Rx,  Tx
+StaticJsonDocument<200> doc;
 
 #define DHTTYPE DHT11
 #define DHTPIN  A0
@@ -137,8 +139,10 @@ void writeAQIapi(void)
   startAQIapi();
   // preparacao da string GET
   //String getStr = "GET /feed/Alameda/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
-  //String getStr = "GET /aq/forecast/zipCode/94501/date//format/text/csv/distance//api_key/33628645-4EE3-4D27-A826-479EDB82E726";
-  String getStr = "GET /aq/observation/latLong/current/?format=text/csv&latitude=37.7878&longitude=-122.2744&distance=25&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726";
+  String getStr = "GET /aq/observation/latLong/current/?format=text/csv&latitude=37.7878&longitude=-122.2744&distance=1&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726";
+  //String getStr = "GET /v2/states?country=China&key="; //iqair
+  //getStr += iq_air_key;
+  //getStr += "HTTP/1.1";
   getStr += "\r\n\r\n";
   GetAQIapi(getStr);
 }
@@ -149,7 +153,11 @@ void startAQIapi(void)
   ESP8266.flush();
   String cmd = "AT+CIPSTART=\"TCP\",\"";
   //cmd += "172.105.192.79"; // IPv4 Address for aqicn.org
-  cmd += "134.67.21.55";
+  //cmd += "134.67.21.55"; //airow.gov
+  //cmd += "13.230.108.239"; //iqair
+  //cmd += "192.155.89.79"; //weatherbit
+  //cmd += "104.98.206.72";
+  cmd += "3.20.208.175"; //airowapi.gov
   cmd += "\",80";
   ESP8266.println(cmd);
   Serial.print("Start Commands: ");
@@ -168,6 +176,7 @@ String GetAQIapi(String getStr)
   cmd += String(getStr.length());
   ESP8266.println(cmd);
   Serial.println(cmd);
+  Serial.println("LOOK AT MEA");
 
   if(ESP8266.find(">"))
   {
@@ -177,20 +186,29 @@ String GetAQIapi(String getStr)
     String messageBody = "";
     while (ESP8266.available())
     {
-      Serial.println(ESP8266.readStringUntil('\n')); 
-//      String line = ESP8266.readStringUntil('\n');
-//      if (line.length() == 1)
-//      {
-//        messageBody = ESP8266.readStringUntil('\n');
-//        Serial.println(messageBody);
-//        messageBody += ESP8266.readStringUntil('\n');
-//        Serial.println(messageBody);
-//        messageBody += ESP8266.readStringUntil('\n');
-//        Serial.println(messageBody);
-//      }
+      //Serial.println(ESP8266.readStringUntil('\n')); 
+      //messageBody += ESP8266.readStringUntil('\n');
+      String line = ESP8266.readStringUntil('\n');
+      if (line.length() == 1)
+      {
+        messageBody = ESP8266.readStringUntil('\n');
+        Serial.println(messageBody);
+        messageBody += ESP8266.readStringUntil('\n');
+        Serial.println(messageBody);
+        messageBody += ESP8266.readStringUntil('\n');
+        Serial.println(messageBody);
+      }
     }
     Serial.print("MessageBody received: ");
     Serial.println(messageBody);
+    DeserializationError error = deserializeJson(doc, messageBody);
+
+    // Test if parsing succeeds.
+    if (error) {
+    Serial.print(F("deserializeJson() failed: "));
+    Serial.println(error.f_str());
+    return;
+  }
     return messageBody;
   }
   else
@@ -288,6 +306,7 @@ void setup()
   }
   }
   initialisation_complete = true; // open interrupt processing for business
+  
 }
 
 void loop()
