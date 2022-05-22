@@ -21,6 +21,8 @@ SoftwareSerial ESP8266(3, 4); // Rx,  Tx
 // LCD Setup
 const int rs = 49, en = 48, d4 = 53, d5 = 52, d6 = 51, d7 = 50;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+#define LCD_Backlight 10 // 15. BL1 - Backlight +                                Emitter of 2N3904, Collector to VCC, Base to D10 via 10K resistor
+
 
 StaticJsonDocument<200> doc;
 
@@ -307,11 +309,13 @@ void setup()
     Serial.print(".");
   ESP8266.print("AT+CWJAP=\"Portami-al-Mare\",\"184318aaea\"\r\n");
   ESP8266.setTimeout(5000);
- if(ESP8266.find("WIFI CONNECTED\r\n")==1)
- {
- Serial.println("WIFI CONNECTED");
- lcd.clear();
- lcd.print("WIFI CONNECTED");
+  if(ESP8266.find("WIFI CONNECTED\r\n")==1)
+{
+    Serial.println("WIFI CONNECTED");
+    lcd.clear();
+    lcd.print("WIFI CONNECTED");
+    lcd.setCursor(0,1);
+    lcd.print("       :)");
  break;
  }
  times_check++;
@@ -369,10 +373,14 @@ void loop()
     lcd.print("Goodnight Sweet");
     lcd.setCursor(0,1);
     lcd.print("     Prince     ");
-    delay(3000);
+    for (int i = 128; i = 0; i += 2) {
+      analogWrite(LCD_Backlight, i);
+    }
     lcd.noDisplay();
   }
   else {
+    analogWrite(LCD_Backlight, 128);
+
     lcd.display();
     lcd.clear();
     lcd.print(" I Have Awaken! ");
