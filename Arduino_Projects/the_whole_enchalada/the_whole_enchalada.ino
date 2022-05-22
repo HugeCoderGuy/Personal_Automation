@@ -3,6 +3,8 @@
 #include <DHT.h>;
 #include <Adafruit_NeoPixel.h>
 #include <ArduinoJson.h>
+#include <LiquidCrystal.h>
+
 
 
 ///////////// Variable Decleratio /////////////
@@ -10,15 +12,21 @@
 
 /// ESP WIFI
 String myAPIkey = "6YCDUHSJGWKFG6L0";
-String iq_air_key = "7cf2a06d-08f8-470d-9da2-7d63e31db776";
-String aqi_url = "http://api.waqi.info/feed/Alameda/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
-String weatherbit_key = "47b0a5c7a0ba4c9bb10b4c6161315faa";
+//String iq_air_key = "7cf2a06d-08f8-470d-9da2-7d63e31db776";
+//String aqi_url = "http://api.waqi.info/feed/Alameda/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
+//String weatherbit_key = "47b0a5c7a0ba4c9bb10b4c6161315faa";
 
 SoftwareSerial ESP8266(3, 4); // Rx,  Tx
+
+// LCD Setup
+const int rs = 49, en = 48, d4 = 53, d5 = 52, d6 = 51, d7 = 50;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
 StaticJsonDocument<200> doc;
 
 #define DHTTYPE DHT11
 #define DHTPIN  A0
+//String PRAY = "GET /aq/observation/latLong/current/?format=text/csv&latitude=37.7878&longitude=-122.2744&distance=1&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726\r\n\r\n";
 
 DHT dht(DHTPIN, DHTTYPE,11);
 float humidity, temp_f, temp_c;
@@ -115,11 +123,13 @@ String GetThingspeakcmd(String getStr)
     String messageBody = "";
     while (ESP8266.available())
     {
-      String line = ESP8266.readStringUntil('\n');
-      if (line.length() == 1)
-      {
-        messageBody = ESP8266.readStringUntil('\n');
-      }
+      Serial.println(ESP8266.readStringUntil('\n')); 
+
+//      String line = ESP8266.readStringUntil('\n');
+//      if (line.length() == 1)
+//      {
+//        messageBody = ESP8266.readStringUntil('\n');
+//      }
     }
     Serial.print("MessageBody received: ");
     Serial.println(messageBody);
@@ -139,12 +149,10 @@ void writeAQIapi(void)
   startAQIapi();
   // preparacao da string GET
   //String getStr = "GET /feed/Alameda/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
-  String getStr = "GET /aq/observation/latLong/current/?format=text/csv&latitude=37.7878&longitude=-122.2744&distance=1&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726";
-  //String getStr = "GET /v2/states?country=China&key="; //iqair
-  //getStr += iq_air_key;
-  //getStr += "HTTP/1.1";
-  getStr += "\r\n\r\n";
-  GetAQIapi(getStr);
+  //String getStr = "GET /aq/observation/latLong/current/?format=text/csv&latitude=37.7878&longitude=-122.2744&distance=1&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726";
+  //getStr += "\r\n\r\n";
+  //Serial.print(getStr);
+  GetAQIapi();
 }
 
 
@@ -152,7 +160,6 @@ void startAQIapi(void)
 {
   ESP8266.flush();
   String cmd = "AT+CIPSTART=\"TCP\",\"";
-  //cmd += "172.105.192.79"; // IPv4 Address for aqicn.org
   //cmd += "134.67.21.55"; //airow.gov
   //cmd += "13.230.108.239"; //iqair
   //cmd += "192.155.89.79"; //weatherbit
@@ -170,32 +177,30 @@ void startAQIapi(void)
   }
 }
 
-String GetAQIapi(String getStr)
+String GetAQIapi(void)
 {
-  String cmd = "AT+CIPSEND=";
-  cmd += String(getStr.length());
+  //String getStr = "GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726";
+
+  String cmd = "AT+CIPSEND=";   
+  //int getStr_l = getStr.length();
+  //cmd += String(getStr_l);  ///////ISSUE WITH LEGTH
+  cmd += "130";
   ESP8266.println(cmd);
   Serial.println(cmd);
-  Serial.println("LOOK AT MEA");
-
   if(ESP8266.find(">"))
   {
-    ESP8266.print(getStr);
-    Serial.println(getStr);
+    ESP8266.print("GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726");
+    Serial.println("GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726");
     delay(500);
     String messageBody = "";
     while (ESP8266.available())
     {
-      //Serial.println(ESP8266.readStringUntil('\n')); 
+      Serial.println(ESP8266.readStringUntil('\n')); 
       //messageBody += ESP8266.readStringUntil('\n');
       String line = ESP8266.readStringUntil('\n');
       if (line.length() == 1)
       {
         messageBody = ESP8266.readStringUntil('\n');
-        Serial.println(messageBody);
-        messageBody += ESP8266.readStringUntil('\n');
-        Serial.println(messageBody);
-        messageBody += ESP8266.readStringUntil('\n');
         Serial.println(messageBody);
       }
     }
@@ -211,6 +216,7 @@ String GetAQIapi(String getStr)
   }
     return messageBody;
   }
+  
   else
   {
     ESP8266.println("AT+CIPCLOSE");
@@ -277,9 +283,14 @@ void setup()
   Serial.begin(9600);
   ESP8266.begin(9600);
   dht.begin();
+  
   bool pixel_state = false;
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
+
+  // setup LCD
+  lcd.begin(16, 2);
+  
   pinMode(button_switch, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(button_switch),
                   button_interrupt_handler,
@@ -288,6 +299,9 @@ void setup()
   ESP8266.println("AT+RST");
   delay(2000);
   Serial.println("Connecting to Wifi");
+  lcd.print(" Connecting to");
+  lcd.setCursor(0,1);
+  lcd.print("      Wifi...");
    while(check_connection==0)
   {
     Serial.print(".");
@@ -296,6 +310,8 @@ void setup()
  if(ESP8266.find("WIFI CONNECTED\r\n")==1)
  {
  Serial.println("WIFI CONNECTED");
+ lcd.clear();
+ lcd.print("WIFI CONNECTED");
  break;
  }
  times_check++;
@@ -315,19 +331,11 @@ void loop()
   if (waitTime > (writingTimer*1000))
   {
     readSensors();
+    lcd.clear();
+    lcd.print("    API CALL");
     writeThingSpeak();
-    Serial.print("pray");
-//    http.begin("http://api.openweathermap.org/data/2.5/weather?q=London,uk&APPID=1041444a18cfb8448343254a45721b1d");
-//    String payload = http.getString();   //Get the request response payload
-//    JsonObject& root = jsonBuffer.parseObject(payload);
-//    float temp = (float)(root["main"]["temp"]) - 273.15;    // get temperature
-//    Serial.print(temp)
-    writeAQIapi();
-    //JsonObject& root = jsonBuffer.parseObject(writeAQIapi());
-    //if(!root.success()) {
-    //Serial.println("parseObject() failed");
-    //return false;
-  //}
+    //writeAQIapi();
+
     startTime = millis();
   }
 
@@ -335,19 +343,42 @@ void loop()
   if (read_button() == switched) {
     // button on/off cycle now complete, so flip LED between HIGH and LOW
     pixel_state = !pixel_state;
+    lcd.clear();
+    lcd.print("Jelly Light On!");
 
   } if (pixel_state == true) {
     uint32_t rgbcolor = strip.ColorHSV(hue);
     strip.fill(rgbcolor);
     strip.show();
-    hue += 50;
+    hue += 25;
     // Prevet overflow of hue variable
     if (hue >= 65534) {
       hue = 0;
     }
   } else {
+    lcd.clear();
+    lcd.print("Jelly Light Off!");
     strip.fill(0, 0, 0);
     strip.show();
+  }
+
+  // Save some energy by turning off the LCD at night
+  int light = analogRead(A0);
+  if (light <= 100) {
+    lcd.clear();
+    lcd.print("Goodnight Sweet");
+    lcd.setCursor(0,1);
+    lcd.print("     Prince     ");
+    delay(3000);
+    lcd.noDisplay();
+  }
+  else {
+    lcd.display();
+    lcd.clear();
+    lcd.print(" I Have Awaken! ");
+    lcd.setCursor(0,1);
+    lcd.print("       :)       ");
+    delay(1000);
   }
 
 }
