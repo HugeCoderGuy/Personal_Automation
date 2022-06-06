@@ -38,6 +38,12 @@ void setup()
   {
     Serial.print(".");
   ESP8266.print("AT+CWJAP=\"Portami-al-Mare\",\"184318aaea\"\r\n");
+  while (ESP8266.available()) 
+    {
+
+     Serial.println(ESP8266.readStringUntil('\n'));
+      
+    }
   ESP8266.setTimeout(5000);
  if(ESP8266.find("WIFI CONNECTED\r\n")==1)
  {
