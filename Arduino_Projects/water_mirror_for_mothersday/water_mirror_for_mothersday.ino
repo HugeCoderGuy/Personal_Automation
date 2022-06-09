@@ -13,32 +13,38 @@ int sensorA;
 
 
 void setup() {
+  Serial.begin(9600);
+  Serial.print("doe with setup");
   // seven segment setup
-  pinMode(a, OUTPUT);  //A
-  pinMode(b, OUTPUT);  //B
-  pinMode(c, OUTPUT);  //C
-  pinMode(d, OUTPUT);  //D
-  pinMode(e, OUTPUT);  //E
-  pinMode(f, OUTPUT);  //F
-  pinMode(g, OUTPUT);  //G
-  
-  for (int i; i++; i<8) {
-    digitalWrite(i, HIGH);
-    delay(250);
-  }
-  
-  turnOff();
-  
+//  pinMode(a, OUTPUT);  //A
+//  pinMode(b, OUTPUT);  //B
+//  pinMode(c, OUTPUT);  //C
+//  pinMode(d, OUTPUT);  //D
+//  pinMode(e, OUTPUT);  //E
+//  pinMode(f, OUTPUT);  //F
+//  pinMode(g, OUTPUT);  //G
+//  
+//  for (int i; i++; i<8) {
+//    digitalWrite(i, HIGH);
+//    delay(250);
+//  }
+//  
+//  turnOff();
+//  Serial.begin(9600);
+//  Serial.print("doe with setup");
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  sensorA = analogRead(watermirror);
-  output = map(sensorA, dryA, wetA, 9, 0); 
-  
-  // update the digit
-  turnOff();
-  displayDigit(output);
+//  sensorA = analogRead(watermirror);
+//  output = map(sensorA, dryA, wetA, 9, 0); 
+//  
+//  // update the digit
+//  turnOff();
+//  displayDigit(output);
+  int light = analogRead(A15);
+  Serial.println(light);
+  delay(250);
 
   
 }

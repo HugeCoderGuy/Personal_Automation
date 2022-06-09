@@ -11,7 +11,7 @@
 
 
 /// ESP WIFI
-SoftwareSerial ESP8266(3, 4); // Rx,  Tx
+SoftwareSerial ESP8266(10, 11); // Rx,  Tx
 
 String myAPIkey = "6YCDUHSJGWKFG6L0";
 //String iq_air_key = "7cf2a06d-08f8-470d-9da2-7d63e31db776";
@@ -20,24 +20,26 @@ String myAPIkey = "6YCDUHSJGWKFG6L0";
 
 
 // LCD Setup
-const int rs = 49, en = 48, d4 = 53, d5 = 52, d6 = 51, d7 = 50;
+const int rs = 48, en = 49, d4 = 53, d5 = 52, d6 = 51, d7 = 50;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #define LCD_Backlight 10 // 15. BL1 - Backlight +                                Emitter of 2N3904, Collector to VCC, Base to D10 via 10K resistor
 
 
 // setup DHT Sensor
 #define DHTTYPE     DHT11
-#define DHTPIN      A0
+#define DHTPIN      46
 DHT dht(DHTPIN, DHTTYPE,11);
+
+#define LIGHTP      A15
 
 //variable declaration
 byte humidity, temp_f, temp_c;
 byte house_plants = 0;
 byte jap_maple = 0;
 unsigned int light;
-long writingTimer = 17;
-long startTime = 0;
-long waitTime = 0;
+byte writingTimer = 17;
+unsigned long startTime = 0;
+unsigned long waitTime = 0;
 
 
 boolean relay1_st = false;
@@ -50,9 +52,9 @@ boolean error;
 uint16_t hue =  0;
 bool pixel_state;
 #define LED    6
-int     button_switch =                       18; // external interrupt pin
-int     tree_switch =                         19; // external interrupt pin
-int     house_switch =                        20; // external interrupt pin
+byte     button_switch =                       18; // external interrupt pin
+byte     tree_switch =                         19; // external interrupt pin
+byte     house_switch =                        20; // external interrupt pin
 
 #define switched                            true // value if the button switch has been pressed
 #define triggered                           true // controls interrupt handler
@@ -218,10 +220,11 @@ void readSensors(void)
   temp_c = dht.readTemperature();
   humidity = dht.readHumidity();
   temp_f = (temp_c * 1.8) + 32;
-  light = analogRead(A0);
+  light = analogRead(LIGHTP);
 
   Serial.println(temp_c);
   Serial.println(temp_f);
+  Serial.println(light);
 }
 
 
@@ -338,6 +341,7 @@ void startAQIapi(void)
   }
 }
 
+// SERIAL.WRITEEE VS SEREIAL PRIT
 String GetAQIapi(void)
 {
   //String getStr = "GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726";
