@@ -22,7 +22,7 @@ String myAPIkey = "6YCDUHSJGWKFG6L0";
 // LCD Setup
 const int rs = 48, en = 49, d4 = 53, d5 = 52, d6 = 51, d7 = 50;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-#define LCD_Backlight 10 // 15. BL1 - Backlight +                                Emitter of 2N3904, Collector to VCC, Base to D10 via 10K resistor
+#define LCD_Backlight 3 // 15. BL1 - Backlight +                                Emitter of 2N3904, Collector to VCC, Base to D10 via 10K resistor
 
 
 // setup DHT Sensor
@@ -194,7 +194,7 @@ void loop()
     lcd.print("Goodnight Sweet");
     lcd.setCursor(0,1);
     lcd.print("     Prince     ");
-    for (int i = 128; i = 0; i += 2) {
+    for (int i = 0; i <= 250; i += 1) {
       analogWrite(LCD_Backlight, i);
     }
     lcd.noDisplay();
@@ -408,6 +408,7 @@ void button_interrupt_handler()
         // button pressed, so we can start the read on/off + debounce cycle wich will
         // be completed by the button_read() function.
         interrupt_process_status = triggered;  // keep this ISR 'quiet' until button read fully completed
+        Serial.print("the button works!");
       }
     }
   }
