@@ -4,6 +4,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <ArduinoJson.h>
 #include <LiquidCrystal.h>
+#include "Adafruit_PM25AQI.h"
 
 
 
@@ -30,13 +31,24 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #define DHTPIN      46
 DHT dht(DHTPIN, DHTTYPE,11);
 
+// PM2.5 setup
+SoftwareSerial pmSerial(12, 13);
+Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
+unsigned int pm25;
+unsigned int pm10;
+
+
 #define LIGHTP      A15
+bool LCDOn = true;
+int lightThresh = 175;
 
 //variable declaration
 byte humidity, temp_f, temp_c;
 byte house_plants = 0;
 byte jap_maple = 0;
 unsigned int light;
+bool jellyState = true;
+
 byte writingTimer = 17;
 unsigned long startTime = 0;
 unsigned long waitTime = 0;
@@ -80,16 +92,22 @@ Adafruit_NeoPixel strip(LED_COUNT, LED);
 ///////////// Program Initialization /////////////
 void setup()
 {
+  pinMode(LCD_Backlight, OUTPUT);
+  digitalWrite(LCD_Backlight, HIGH);
+    // setup LCD
+  lcd.begin(16, 2);
+  lcd.print("System Setup...");
   Serial.begin(9600);
   ESP8266.begin(9600);
+  
+
   dht.begin();
 
   bool pixel_state = false;
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
 
-  // setup LCD
-  lcd.begin(16, 2);
+
 
   // button setup
   pinMode(button_switch, INPUT_PULLUP);
@@ -110,6 +128,7 @@ void setup()
   ESP8266.println("AT+RST");
   delay(2000);
   Serial.println("Connecting to Wifi");
+  lcd.clear();
   lcd.print(" Connecting to");
   lcd.setCursor(0,1);
   lcd.print("      Wifi...");
@@ -122,9 +141,12 @@ void setup()
 {
     Serial.println("WIFI CONNECTED");
     lcd.clear();
+    lcd.setCursor(0,0);
+
     lcd.print("WIFI CONNECTED");
     lcd.setCursor(0,1);
     lcd.print("       :)");
+    delay(1000);
  break;
  }
  times_check++;
@@ -136,6 +158,15 @@ void setup()
   }
   initialisation_complete = true; // open interrupt processing for business
 
+
+  pmSerial.begin(9600);
+
+  if (! aqi.begin_UART(&pmSerial)) { // connect to the sensor over software serial 
+    Serial.println("Could not find PM 2.5 sensor!");
+    while (1) delay(10);
+  }
+
+  Serial.println("PM25 found!");
 }
 
 void loop()
@@ -143,6 +174,7 @@ void loop()
   waitTime = millis()-startTime;
   if (waitTime > (writingTimer*1000))
   {
+    LCDOnOff();
     readSensors();
     lcd.clear();
     lcd.print("    API CALL");
@@ -151,13 +183,37 @@ void loop()
 
     startTime = millis();
   }
+  jellyOnOff();
+  updateLCD();
 
+
+
+}
+
+
+
+///////////// Function Declaration /////////////
+void updateLCD(void) {
+  delay(1000);
+  readSensors();
+  lcd.clear();
+  lcd.print("PM2.5=");lcd.print(pm25);
+  lcd.setCursor(9,0);
+  lcd.print("PM1=");lcd.print(pm10);
+  lcd.setCursor(0,1);
+  lcd.print("Temp=");lcd.print(temp_f);
+  lcd.setCursor(9,1);
+  lcd.print("H=");lcd.print(humidity);
+}
+void jellyOnOff(void) 
+{
   // test button switch and process if pressed
   if (read_button() == switched) {
     // button on/off cycle now complete, so flip LED between HIGH and LOW
     pixel_state = !pixel_state;
     lcd.clear();
     lcd.print("Jellyfish On!");
+    delay(500);
 
   } if (pixel_state == true) {
     uint32_t rgbcolor = strip.ColorHSV(hue);
@@ -168,16 +224,57 @@ void loop()
     if (hue >= 65534) {
       hue = 0;
     }
-  } else {
-    lcd.clear();
-    lcd.print("Jellyfish Off!");
+    jellyState = true;
+  } else if (jellyState == true) {
     strip.fill(0, 0, 0);
     strip.show();
+    lcd.clear();
+    lcd.print("Jellyfish Off!");
+    delay(500);
+    jellyState = false;
+  }
+}
+
+
+void LCDOnOff(void)
+{
+  light = analogRead(LIGHTP);
+
+  // Save some energy by turning off the LCD at night
+  if (light <= lightThresh and LCDOn == true) {
+    lcd.clear();
+    lcd.print("Goodnight Sweet");
+    lcd.setCursor(0,1);
+    lcd.print("     Prince     ");
+    delay(1000);
+    for (int i =254; i >= 0; i -= 1) {
+      delay(10);
+      analogWrite(LCD_Backlight, i);
+    }
+    digitalWrite(LCD_Backlight, LOW);
+    lcd.noDisplay();
+    LCDOn = false;
+  }
+  else if (light > lightThresh and LCDOn == false){
+
+    lcd.display();
+    lcd.clear();
+    lcd.print(" I Have Awaken! ");
+    lcd.setCursor(0,1);
+    lcd.print("       :)       ");
+    for (int i = 0; i <= 254; i += 1) {
+      delay(10);
+      analogWrite(LCD_Backlight, i);
+    }    
+    LCDOn = true;
   }
 
+}
+
+void watersched(void){
   if (read_button_tree == switched) {
-    jap_maple = 100;
-     }
+  jap_maple = 100;
+   }
 
   if (read_button_tree == switched) {
     house_plants = 100;
@@ -187,32 +284,8 @@ void loop()
     jap_maple = 0;
     house_plants = 0;
     }
-
-  // Save some energy by turning off the LCD at night
-  if (light <= 100) {
-    lcd.clear();
-    lcd.print("Goodnight Sweet");
-    lcd.setCursor(0,1);
-    lcd.print("     Prince     ");
-    for (int i = 0; i <= 250; i += 1) {
-      analogWrite(LCD_Backlight, i);
-    }
-    lcd.noDisplay();
-  }
-  else {
-    analogWrite(LCD_Backlight, 128);
-
-    lcd.display();
-    lcd.clear();
-    lcd.print(" I Have Awaken! ");
-    lcd.setCursor(0,1);
-    lcd.print("       :)       ");
-    delay(1000);
-  }
-
 }
 
-///////////// Function Declaration /////////////
 
 /// ESP8266 Wifi fuctios
 void readSensors(void)
@@ -220,11 +293,16 @@ void readSensors(void)
   temp_c = dht.readTemperature();
   humidity = dht.readHumidity();
   temp_f = (temp_c * 1.8) + 32;
-  light = analogRead(LIGHTP);
+  PM25_AQI_Data data;
+  
+  if (! aqi.read(&data)) {
+    Serial.println("Could not read from AQI");
+  }
+  pm25 = data.pm25_standard;
+  pm10 = data.pm10_standard;
 
   Serial.println(temp_c);
   Serial.println(temp_f);
-  Serial.println(light);
 }
 
 
