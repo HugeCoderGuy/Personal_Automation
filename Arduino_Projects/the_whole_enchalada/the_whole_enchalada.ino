@@ -96,7 +96,7 @@ void setup()
   digitalWrite(LCD_Backlight, HIGH);
     // setup LCD
   lcd.begin(16, 2);
-  lcd.print("System Setup...");
+  lcd.print(F("System Setup..."));
   Serial.begin(9600);
   ESP8266.begin(9600);
   
@@ -127,11 +127,11 @@ void setup()
   startTime = millis();
   ESP8266.println("AT+RST");
   delay(2000);
-  Serial.println("Connecting to Wifi");
+  Serial.println(F("Connecting to Wifi"));
   lcd.clear();
-  lcd.print(" Connecting to");
+  lcd.print(F(" Connecting to"));
   lcd.setCursor(0,1);
-  lcd.print("      Wifi...");
+  lcd.print(F("      Wifi..."));
    while(check_connection==0)
   {
     Serial.print(".");
@@ -139,11 +139,11 @@ void setup()
   ESP8266.setTimeout(5000);
   if(ESP8266.find("WIFI CONNECTED\r\n")==1)
 {
-    Serial.println("WIFI CONNECTED");
+    Serial.println(F("WIFI CONNECTED"));
     lcd.clear();
     lcd.setCursor(0,0);
 
-    lcd.print("WIFI CONNECTED");
+    lcd.print(F("WIFI CONNECTED"));
     lcd.setCursor(0,1);
     lcd.print("       :)");
     delay(1000);
@@ -153,7 +153,7 @@ void setup()
  if(times_check>3)
  {
   times_check=0;
-   Serial.println("Trying to Reconnect..");
+   Serial.println(F("Trying to Reconnect.."));
   }
   }
   initialisation_complete = true; // open interrupt processing for business
@@ -166,7 +166,7 @@ void setup()
     while (1) delay(10);
   }
 
-  Serial.println("PM25 found!");
+  Serial.println(F("PM25 found!"));
 }
 
 void loop()
@@ -177,7 +177,7 @@ void loop()
     LCDOnOff();
     readSensors();
     lcd.clear();
-    lcd.print("    API CALL");
+    lcd.print(F("    API CALL"));
     writeThingSpeak();
     //writeAQIapi();
 
@@ -197,13 +197,13 @@ void updateLCD(void) {
   delay(1000);
   readSensors();
   lcd.clear();
-  lcd.print("PM2.5=");lcd.print(pm25);
+  lcd.print(F("PM2.5="));lcd.print(pm25);
   lcd.setCursor(9,0);
-  lcd.print("PM1=");lcd.print(pm10);
+  lcd.print(F("PM1="));lcd.print(pm10);
   lcd.setCursor(0,1);
-  lcd.print("Temp=");lcd.print(temp_f);
+  lcd.print(F("Temp="));lcd.print(temp_f);
   lcd.setCursor(9,1);
-  lcd.print("H=");lcd.print(humidity);
+  lcd.print(F("H="));lcd.print(humidity);
 }
 void jellyOnOff(void) 
 {
@@ -212,7 +212,7 @@ void jellyOnOff(void)
     // button on/off cycle now complete, so flip LED between HIGH and LOW
     pixel_state = !pixel_state;
     lcd.clear();
-    lcd.print("Jellyfish On!");
+    lcd.print(F("Jellyfish On!"));
     delay(500);
 
   } if (pixel_state == true) {
@@ -229,7 +229,7 @@ void jellyOnOff(void)
     strip.fill(0, 0, 0);
     strip.show();
     lcd.clear();
-    lcd.print("Jellyfish Off!");
+    lcd.print(F("Jellyfish Off!"));
     delay(500);
     jellyState = false;
   }
@@ -243,9 +243,9 @@ void LCDOnOff(void)
   // Save some energy by turning off the LCD at night
   if (light <= lightThresh and LCDOn == true) {
     lcd.clear();
-    lcd.print("Goodnight Sweet");
+    lcd.print(F("Goodnight Sweet"));
     lcd.setCursor(0,1);
-    lcd.print("     Prince     ");
+    lcd.print(F("     Prince     "));
     delay(1000);
     for (int i =254; i >= 0; i -= 1) {
       delay(10);
@@ -259,7 +259,7 @@ void LCDOnOff(void)
 
     lcd.display();
     lcd.clear();
-    lcd.print(" I Have Awaken! ");
+    lcd.print(F(" I Have Awaken! "));
     lcd.setCursor(0,1);
     lcd.print("       :)       ");
     for (int i = 0; i <= 254; i += 1) {
@@ -296,7 +296,7 @@ void readSensors(void)
   PM25_AQI_Data data;
   
   if (! aqi.read(&data)) {
-    Serial.println("Could not read from AQI");
+    Serial.println(F("Could not read from AQI"));
   }
   pm25 = data.pm25_standard;
   pm10 = data.pm10_standard;
@@ -340,12 +340,12 @@ void startThingSpeakCmd(void)
   cmd += "184.106.153.149"; // api.thingspeak.com IP address
   cmd += "\",80";
   ESP8266.println(cmd);
-  Serial.print("Start Commands: ");
+  Serial.print(F("Start Commands: "));
   Serial.println(cmd);
 
-  if(ESP8266.find("Error"))
+  if(ESP8266.find(F("Error")))
   {
-    Serial.println("AT+CIPSTART error");
+    Serial.println(F("AT+CIPSTART error"));
     return;
   }
 }
@@ -357,7 +357,7 @@ String GetThingspeakcmd(String getStr)
   ESP8266.println(cmd);
   Serial.println(cmd);
 
-  if(ESP8266.find(">"))
+  if(ESP8266.find(F(">")))
   {
     ESP8266.print(getStr);
     Serial.println(getStr);
@@ -373,14 +373,14 @@ String GetThingspeakcmd(String getStr)
 //        messageBody = ESP8266.readStringUntil('\n');
 //      }
     }
-    Serial.print("MessageBody received: ");
+    Serial.print(F("MessageBody received: "));
     Serial.println(messageBody);
     return messageBody;
   }
   else
   {
-    ESP8266.println("AT+CIPCLOSE");
-    Serial.println("AT+CIPCLOSE");
+    ESP8266.println(F("AT+CIPCLOSE"));
+    Serial.println(F("AT+CIPCLOSE"));
   }
 }
 
@@ -409,12 +409,12 @@ void startAQIapi(void)
   cmd += "3.20.208.175"; //airowapi.gov
   cmd += "\",80";
   ESP8266.println(cmd);
-  Serial.print("Start Commands: ");
+  Serial.print(F("Start Commands: "));
   Serial.println(cmd);
 
-  if(ESP8266.find("Error"))
+  if(ESP8266.find(F("Error")))
   {
-    Serial.println("AT+CIPSTART error");
+    Serial.println(F("AT+CIPSTART error"));
     return;
   }
 }
@@ -432,8 +432,8 @@ String GetAQIapi(void)
   Serial.println(cmd);
   if(ESP8266.find(">"))
   {
-    ESP8266.print("GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726");
-    Serial.println("GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726");
+    ESP8266.print(F("GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726"));
+    Serial.println(F("GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726"));
     delay(500);
     String messageBody = "";
     while (ESP8266.available())
@@ -447,7 +447,7 @@ String GetAQIapi(void)
         Serial.println(messageBody);
       }
     }
-    Serial.print("MessageBody received: ");
+    Serial.print(F("MessageBody received: "));
     Serial.println(messageBody);
     //DeserializationError error = deserializeJson(doc, messageBody);
 
@@ -462,8 +462,8 @@ String GetAQIapi(void)
   
   else
   {
-    ESP8266.println("AT+CIPCLOSE");
-    Serial.println("AT+CIPCLOSE");
+    ESP8266.println(F("AT+CIPCLOSE"));
+    Serial.println(F("AT+CIPCLOSE"));
   }
 }
 
@@ -486,7 +486,7 @@ void button_interrupt_handler()
         // button pressed, so we can start the read on/off + debounce cycle wich will
         // be completed by the button_read() function.
         interrupt_process_status = triggered;  // keep this ISR 'quiet' until button read fully completed
-        Serial.print("the button works!");
+        Serial.print(F("the button works!"));
       }
     }
   }
