@@ -2,9 +2,10 @@
 #include <SoftwareSerial.h>
 #include <DHT.h>;
 #include <Adafruit_NeoPixel.h>
-#include <ArduinoJson.h>
 #include <LiquidCrystal.h>
 #include "Adafruit_PM25AQI.h"
+
+
 
 
 
@@ -34,8 +35,8 @@ DHT dht(DHTPIN, DHTTYPE,11);
 // PM2.5 setup
 SoftwareSerial pmSerial(12, 13);
 Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
-unsigned int pm25;
-unsigned int pm10;
+byte pm25;
+byte pm10;
 
 
 #define LIGHTP      A15
@@ -64,9 +65,9 @@ boolean error;
 uint16_t hue =  0;
 bool pixel_state;
 #define LED    6
-byte     button_switch =                       18; // external interrupt pin
-byte     tree_switch =                         19; // external interrupt pin
-byte     house_switch =                        20; // external interrupt pin
+#define button_switch                        18 // external interrupt pin
+#define tree_switch                          19 // external interrupt pin
+#define house_switch                         20 // external interrupt pin
 
 #define switched                            true // value if the button switch has been pressed
 #define triggered                           true // controls interrupt handler
@@ -86,7 +87,7 @@ bool initialisation_complete =            false; // inhibit any interrupts until
 
 
 // Declare our NeoPixel strip object:
-#define LED_COUNT 4
+#define LED_COUNT 1
 Adafruit_NeoPixel strip(LED_COUNT, LED);
 
 ///////////// Program Initialization /////////////
@@ -134,7 +135,7 @@ void setup()
   lcd.print(F("      Wifi..."));
    while(check_connection==0)
   {
-    Serial.print(".");
+    Serial.print(F("."));
   ESP8266.print("AT+CWJAP=\"Portami-al-Mare\",\"184318aaea\"\r\n");
   ESP8266.setTimeout(5000);
   if(ESP8266.find("WIFI CONNECTED\r\n")==1)
@@ -162,7 +163,7 @@ void setup()
   pmSerial.begin(9600);
 
   if (! aqi.begin_UART(&pmSerial)) { // connect to the sensor over software serial 
-    Serial.println("Could not find PM 2.5 sensor!");
+    Serial.println(F("Could not find PM 2.5 sensor!"));
     while (1) delay(10);
   }
 
@@ -174,17 +175,17 @@ void loop()
   waitTime = millis()-startTime;
   if (waitTime > (writingTimer*1000))
   {
-    LCDOnOff();
-    readSensors();
+//    LCDOnOff();
     lcd.clear();
     lcd.print(F("    API CALL"));
+    readSensors();
     writeThingSpeak();
     //writeAQIapi();
 
     startTime = millis();
   }
-  jellyOnOff();
-  updateLCD();
+//  jellyOnOff();
+//  updateLCD();
 
 
 
@@ -301,15 +302,13 @@ void readSensors(void)
   pm25 = data.pm25_standard;
   pm10 = data.pm10_standard;
 
-  Serial.println(temp_c);
-  Serial.println(temp_f);
+  Serial.println(pm25);
 }
 
 
 void writeThingSpeak(void)
 {
   startThingSpeakCmd();
-  // preparacao da string GET
   String getStr = "GET /update?api_key=";
   getStr += myAPIkey;
   getStr +="&field3=";
@@ -323,13 +322,13 @@ void writeThingSpeak(void)
 void writeThingSpeakPlants(void)
 {
   startThingSpeakCmd();
-  String getStr = "GET /update?api_key=";
+  String getStr = F("GET /update?api_key=");
   getStr += myAPIkey;
-  getStr +="&field5=";
+  getStr +=F("&field5=");
   getStr += String(house_plants);
-  getStr +="&field6=";
+  getStr +=F("&field6=");
   getStr += String(jap_maple);
-  getStr += "\r\n\r\n";
+  getStr += F("\r\n\r\n");
   GetThingspeakcmd(getStr);
 }
 
@@ -340,14 +339,15 @@ void startThingSpeakCmd(void)
   cmd += "184.106.153.149"; // api.thingspeak.com IP address
   cmd += "\",80";
   ESP8266.println(cmd);
-  Serial.print(F("Start Commands: "));
+  Serial.print("Start Commands: ");
   Serial.println(cmd);
 
-  if(ESP8266.find(F("Error")))
+  if(ESP8266.find("Error"))
   {
     Serial.println(F("AT+CIPSTART error"));
     return;
   }
+    
 }
 
 String GetThingspeakcmd(String getStr)
@@ -356,22 +356,23 @@ String GetThingspeakcmd(String getStr)
   cmd += String(getStr.length());
   ESP8266.println(cmd);
   Serial.println(cmd);
-
-  if(ESP8266.find(F(">")))
+  
+  if(ESP8266.find(">"))
   {
+    Serial.println("in here ow");
     ESP8266.print(getStr);
     Serial.println(getStr);
     delay(500);
     String messageBody = "";
     while (ESP8266.available())
     {
-      Serial.println(ESP8266.readStringUntil('\n')); 
+//      Serial.println(ESP8266.readStringUntil('\n')); 
 
-//      String line = ESP8266.readStringUntil('\n');
-//      if (line.length() == 1)
-//      {
-//        messageBody = ESP8266.readStringUntil('\n');
-//      }
+      String line = ESP8266.readStringUntil('\n');
+      if (line.length() == 1)
+      {
+        messageBody = ESP8266.readStringUntil('\n');
+      }
     }
     Serial.print(F("MessageBody received: "));
     Serial.println(messageBody);
@@ -379,7 +380,7 @@ String GetThingspeakcmd(String getStr)
   }
   else
   {
-    ESP8266.println(F("AT+CIPCLOSE"));
+    ESP8266.println("AT+CIPCLOSE");
     Serial.println(F("AT+CIPCLOSE"));
   }
 }
@@ -406,8 +407,8 @@ void startAQIapi(void)
   //cmd += "13.230.108.239"; //iqair
   //cmd += "192.155.89.79"; //weatherbit
   //cmd += "104.98.206.72";
-  cmd += "3.20.208.175"; //airowapi.gov
-  cmd += "\",80";
+  cmd += F("3.20.208.175"); //airowapi.gov
+  cmd += F("\",80");
   ESP8266.println(cmd);
   Serial.print(F("Start Commands: "));
   Serial.println(cmd);
@@ -424,10 +425,10 @@ String GetAQIapi(void)
 {
   //String getStr = "GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726";
 
-  String cmd = "AT+CIPSEND=";   
+  String cmd = F("AT+CIPSEND=");   
   //int getStr_l = getStr.length();
   //cmd += String(getStr_l);  ///////ISSUE WITH LEGTH
-  cmd += "130";
+  cmd += F("130");
   ESP8266.println(cmd);
   Serial.println(cmd);
   if(ESP8266.find(">"))

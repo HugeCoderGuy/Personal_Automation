@@ -1,12 +1,12 @@
 #define watermirror     A0
-#define a               1
-#define b               2
-#define c               3
-#define d               4
-#define e               5
-#define f               6
-#define g               7
-const int dryA = 588;
+#define a               2
+#define b               3
+#define c               4
+#define d               5
+#define e               6
+#define f               7
+#define g               8
+const int dryA = 595;
 const int wetA = 248;
 volatile int output;
 int sensorA;
@@ -16,34 +16,33 @@ void setup() {
   Serial.begin(9600);
   Serial.print("doe with setup");
   // seven segment setup
-//  pinMode(a, OUTPUT);  //A
-//  pinMode(b, OUTPUT);  //B
-//  pinMode(c, OUTPUT);  //C
-//  pinMode(d, OUTPUT);  //D
-//  pinMode(e, OUTPUT);  //E
-//  pinMode(f, OUTPUT);  //F
-//  pinMode(g, OUTPUT);  //G
-//  
-//  for (int i; i++; i<8) {
-//    digitalWrite(i, HIGH);
-//    delay(250);
-//  }
-//  
-//  turnOff();
-//  Serial.begin(9600);
-//  Serial.print("doe with setup");
+  pinMode(a, OUTPUT);  //A
+  pinMode(b, OUTPUT);  //B
+  pinMode(c, OUTPUT);  //C
+  pinMode(d, OUTPUT);  //D
+  pinMode(e, OUTPUT);  //E
+  pinMode(f, OUTPUT);  //F
+  pinMode(g, OUTPUT);  //G
+  
+  for (int i = 2; i<=7; i++) {
+    digitalWrite(i, HIGH);
+    Serial.println(i);
+    delay(500 );
+  }
+  
+  turnOff();
+  Serial.print("doe with setup");
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-//  sensorA = analogRead(watermirror);
-//  output = map(sensorA, dryA, wetA, 9, 0); 
-//  
-//  // update the digit
-//  turnOff();
-//  displayDigit(output);
-  int light = analogRead(A15);
-  Serial.println(light);
+  sensorA = analogRead(watermirror);
+  output = map(sensorA, dryA, wetA, 0, 10); 
+  
+  // update the digit
+  turnOff();
+  displayDigit(output);
+ 
   delay(250);
 
   

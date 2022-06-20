@@ -1,6 +1,7 @@
 import cv2
 import os
 import datetime
+import time
 
 
 class DashCam:
@@ -8,20 +9,35 @@ class DashCam:
         print("goig")
         ts = datetime.datetime.now()
         self.filename = "{}.avi".format(ts.strftime("%m-%d-%Y_%H-%M-%S"))
-        self.outputPath = os.path.join(os.getcwd(), "Movies")
+        self.outputPath = os.path.join(os.getcwd(), "dashCam")
         print(self.outputPath)
-        # if not os.path.exists(self.self.outputPath):
-        #     os.mkdir(self.outputPath)
+        if not os.path.exists(self.outputPath):
+            os.mkdir(self.outputPath)
 
         self.p = os.path.sep.join((self.outputPath, self.filename))
         print(self.p)
 
-        # clear old videos
-        for i in os.listdir(self.outputPath):
+        now = time.time()
 
-            print(i)
-            # if video too old:
-            #     os.removedirs(i)
+        # clear old videos
+        for f in os.listdir(self.outputPath):
+            f = os.path.join(self.outputPath, f)
+            # remove files older than 10 days
+            if os.stat(f).st_mtime < now - 10 * 86400:
+                if os.path.isfile(f):
+                    os.remove(os.path.join(self.outputPath, f))
+
+        statvfs = os.statvfs('/home/pi/')
+        usedGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # used space w/ Pi
+        availableGB = (statvfs.f_frsize * statvfss.f_blocks)/10**9 # free space w/ Pi
+        if availableGB <= 5:
+            for f in os.listdir(self.outputPath):
+                f = os.path.join(self.outputPath, f)
+                ### USE os.stat(f).st_mtime to orgaize w/ time ad the delete oldest videos
+
+
+
+        # start new video
 
         self.frames_per_second = 24.0
         self.res = '720p'
@@ -47,8 +63,11 @@ class DashCam:
             ret, frame = self.cap.read()
             self.out.write(frame)
             self.cv2.imshow('frame', frame)
-            if True # BREAK WHE POWER OFF
+            i = 1
+            if i == 100000:# BREAK WHE POWER OFF
                 break
+            else:
+                i = i+1
 
     # grab resolution dimensions and set video capture to it.
     def get_dims(self, cap, res='720p'):
@@ -82,7 +101,7 @@ class DashCam:
 if __name__ == "__main__":
     dash = DashCam()
 
-    dash.startVideo()
-
-    dash.gracefulShutdown()
+    # dash.startVideo()
+    #
+    # dash.gracefulShutdown()
 
