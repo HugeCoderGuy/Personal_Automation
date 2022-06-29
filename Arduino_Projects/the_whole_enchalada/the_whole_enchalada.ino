@@ -175,7 +175,7 @@ void loop()
   waitTime = millis()-startTime;
   if (waitTime > (writingTimer*1000))
   {
-//    LCDOnOff();
+    LCDOnOff();
     lcd.clear();
     lcd.print(F("    API CALL"));
     readSensors();
@@ -185,7 +185,7 @@ void loop()
     startTime = millis();
   }
 //  jellyOnOff();
-//  updateLCD();
+  updateLCD();
 
 
 
@@ -308,6 +308,7 @@ void readSensors(void)
 
 void writeThingSpeak(void)
 {
+  ESP8266.listen();
   startThingSpeakCmd();
   String getStr = "GET /update?api_key=";
   getStr += myAPIkey;
@@ -317,10 +318,14 @@ void writeThingSpeak(void)
   getStr += String(humidity);
   getStr += "\r\n\r\n";
   GetThingspeakcmd(getStr);
+  pmSerial.listen();
+
 }
 
 void writeThingSpeakPlants(void)
 {
+  ESP8266.listen();
+
   startThingSpeakCmd();
   String getStr = F("GET /update?api_key=");
   getStr += myAPIkey;
@@ -330,6 +335,8 @@ void writeThingSpeakPlants(void)
   getStr += String(jap_maple);
   getStr += F("\r\n\r\n");
   GetThingspeakcmd(getStr);
+  pmSerial.listen();
+
 }
 
 void startThingSpeakCmd(void)
