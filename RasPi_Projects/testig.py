@@ -5,10 +5,32 @@ import time
 
 # print(os.getcwd())
 
+
+
 outputPath = os.path.join(os.getcwd(), "dashCam")
+outputPath = os.getcwd()
 print(outputPath)
 if not os.path.exists(outputPath):
     os.mkdir(outputPath)
+
+# Get list of all files only in the given directory
+list_of_files = filter(lambda x: os.path.isfile(os.path.join(outputPath, x)),
+                       os.listdir())
+# Sort list of files based on last modification time in ascending order
+list_of_files = sorted(list_of_files,
+                       key=lambda x: os.path.getmtime(os.path.join(outputPath, x))
+                       )
+# Iterate over sorted list of files and print file path
+# along with last modification time of file
+print(list_of_files)
+for file_name in list_of_files:
+    list_of_files[0]
+for file_name in list_of_files:
+    file_path = os.path.join(outputPath, file_name)
+    timestamp_str = time.strftime('%m/%d/%Y :: %H:%M:%S',
+                                  time.gmtime(os.path.getmtime(file_path)))
+    print(timestamp_str, ' -->', file_name)
+
 
 now = time.time()
 print(now)

@@ -29,10 +29,25 @@ class DashCam:
 
         statvfs = os.statvfs('/home/pi/')
         usedGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # used space w/ Pi
-        availableGB = (statvfs.f_frsize * statvfss.f_blocks)/10**9 # free space w/ Pi
+        availableGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # free space w/ Pi
         if availableGB <= 5:
+            # Get list of all files only in the given directory
+            list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.p, x)),
+                                   os.listdir(self.p))
+            # Sort list of files based on last modification time in ascending order
+            list_of_files = sorted(list_of_files,
+                                   key=lambda x: os.path.getmtime(os.path.join(self.p, x))
+                                   )
+            # delete the oldest three videos
+            for i in range(0,2):
+                print(i)
+
+
+            oldFiles = []
             for f in os.listdir(self.outputPath):
                 f = os.path.join(self.outputPath, f)
+                oldFiles.append(f)
+
                 ### USE os.stat(f).st_mtime to orgaize w/ time ad the delete oldest videos
 
 
