@@ -22,10 +22,9 @@ list_of_files = sorted(list_of_files,
                        )
 # Iterate over sorted list of files and print file path
 # along with last modification time of file
-print(list_of_files)
-for file_name in list_of_files:
-    list_of_files[0]
-for file_name in list_of_files:
+print(list_of_files)            # TO DO: DELETEE THE LAST THREE FILES I DIRECTORY. ITERATE to FILE 3
+
+for file_name in list_of_files[0:3]:
     file_path = os.path.join(outputPath, file_name)
     timestamp_str = time.strftime('%m/%d/%Y :: %H:%M:%S',
                                   time.gmtime(os.path.getmtime(file_path)))
