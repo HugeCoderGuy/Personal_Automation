@@ -6,7 +6,6 @@ import time
 # print(os.getcwd())
 
 
-
 outputPath = os.path.join(os.getcwd(), "dashCam")
 outputPath = os.getcwd()
 print(outputPath)

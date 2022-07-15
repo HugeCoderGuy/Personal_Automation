@@ -5,7 +5,8 @@ import time
 from gpiozero import Button
 
 
-
+#tod: files ot uploadig to root directory ad dashcam folder
+# todo: video rus really quickly
 
 class DashCam:
     def __init__(self):

@@ -35,22 +35,30 @@ DHT dht(DHTPIN, DHTTYPE,11);
 // PM2.5 setup
 SoftwareSerial pmSerial(12, 13);
 Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
-byte pm25;
-byte pm10;
+int pm25;
+int pm10;
+const int numReadings = 40; 
+int pm25readings[numReadings];      // the readings from the analog input
+int pm25readIndex = 0;              // the index of the current reading
+int pm25total = 0;                  // the running total
+int pm25average = 0;                // the average
+int pm10readings[numReadings];      // the readings from the analog input
+int pm10readIndex = 0;              // the index of the current reading
+int pm10total = 0;                  // the running total
+int pm10average = 0;                // the average
 
 
 #define LIGHTP      A15
 bool LCDOn = true;
-int lightThresh = 175;
+int lightThresh = 150;
 
 //variable declaration
 byte humidity, temp_f, temp_c;
-byte house_plants = 0;
-byte jap_maple = 0;
 unsigned int light;
 bool jellyState = true;
+bool securityState = false;
 
-byte writingTimer = 17;
+unsigned long writingTimer = 60;
 unsigned long startTime = 0;
 unsigned long waitTime = 0;
 
@@ -66,8 +74,7 @@ uint16_t hue =  0;
 bool pixel_state;
 #define LED    6
 #define button_switch                        18 // external interrupt pin
-#define tree_switch                          19 // external interrupt pin
-#define house_switch                         20 // external interrupt pin
+#define secuirty_switch                      19 // external interrupt pin
 
 #define switched                            true // value if the button switch has been pressed
 #define triggered                           true // controls interrupt handler
@@ -77,12 +84,10 @@ bool pixel_state;
 volatile  bool interrupt_process_status = {
   !triggered                                     // start with no switch press pending, ie false (!triggered)
 };
-volatile  bool tree_interrupt_process_status = {
+volatile  bool security_interrupt_process_status = {
   !triggered                                     // start with no switch press pending, ie false (!triggered)
 };
-volatile  bool house_interrupt_process_status = {
-  !triggered                                     // start with no switch press pending, ie false (!triggered)
-};
+
 bool initialisation_complete =            false; // inhibit any interrupts until initialisation is complete
 
 
@@ -117,8 +122,10 @@ void setup()
                   interrupt_trigger_type);
 
   // plant buttons setup
-  attachInterrupt(digitalPinToInterrupt(tree_switch),
-                  button_interrupt_handler_tree,
+  pinMode(security_switch, INPUT_PULLUP);
+
+  attachInterrupt(digitalPinToInterrupt(security_switch),
+                  button_interrupt_handler_security,
                   interrupt_trigger_type);
   attachInterrupt(digitalPinToInterrupt(house_switch),
                   button_interrupt_handler_house,
@@ -168,24 +175,35 @@ void setup()
   }
 
   Serial.println(F("PM25 found!"));
+
+  for (int thisReading = 0; thisReading < numReadings; thisReading++) {
+    pm25readings[thisReading] = 0;
+    pm10readings[thisReading] = 0;
+
+  }
+
 }
 
 void loop()
 {
   waitTime = millis()-startTime;
+
   if (waitTime > (writingTimer*1000))
   {
-    LCDOnOff();
     lcd.clear();
-    lcd.print(F("    API CALL"));
+    lcd.print(F("Uploading to"));
+    lcd.setCursor(0,1);
+    lcd.print("ThingSpeak");
     readSensors();
     writeThingSpeak();
     //writeAQIapi();
 
     startTime = millis();
   }
-//  jellyOnOff();
+  jellyOnOff();
   updateLCD();
+  LCDOnOff();
+
 
 
 
@@ -213,14 +231,16 @@ void jellyOnOff(void)
     // button on/off cycle now complete, so flip LED between HIGH and LOW
     pixel_state = !pixel_state;
     lcd.clear();
-    lcd.print(F("Jellyfish On!"));
+    lcd.print(F("Jellyfish Status"));
+    lcd.setCursor(0,1);
+    lcd.print("       ON");
     delay(500);
 
   } if (pixel_state == true) {
     uint32_t rgbcolor = strip.ColorHSV(hue);
     strip.fill(rgbcolor);
     strip.show();
-    hue += 25;
+    hue += 450;
     // Prevet overflow of hue variable
     if (hue >= 65534) {
       hue = 0;
@@ -230,7 +250,9 @@ void jellyOnOff(void)
     strip.fill(0, 0, 0);
     strip.show();
     lcd.clear();
-    lcd.print(F("Jellyfish Off!"));
+    lcd.print(F("Jellyfish Status"));
+    lcd.setCursor(0,1);
+    lcd.print("       OFF");
     delay(500);
     jellyState = false;
   }
@@ -295,14 +317,48 @@ void readSensors(void)
   humidity = dht.readHumidity();
   temp_f = (temp_c * 1.8) + 32;
   PM25_AQI_Data data;
-  
-  if (! aqi.read(&data)) {
-    Serial.println(F("Could not read from AQI"));
-  }
+  aqi.read(&data);
+
   pm25 = data.pm25_standard;
   pm10 = data.pm10_standard;
 
-  Serial.println(pm25);
+  // subtract the last reading:
+  pm25total = pm25total - pm25readings[pm25readIndex];
+  // read from the sensor:
+  pm25readings[pm25readIndex] = pm25;
+  // add the reading to the total:
+  pm25total = pm25total + pm25readings[pm25readIndex];
+  // advance to the next position in the array:
+  pm25readIndex = pm25readIndex + 1;
+
+  // if we're at the end of the array...
+  if (pm25readIndex >= numReadings) {
+    // ...wrap around to the beginning:
+    pm25readIndex = 0;
+  }
+
+    // subtract the last reading:
+  pm10total = pm10total - pm10readings[pm10readIndex];
+
+  // read from the sensor:
+  pm10readings[pm10readIndex] = pm10;
+  // add the reading to the total:
+  pm10total = pm10total + pm10readings[pm10readIndex];
+  // advance to the next position in the array:
+  pm10readIndex = pm10readIndex + 1;
+
+  // if we're at the end of the array...
+  if (pm10readIndex >= numReadings) {
+    // ...wrap around to the beginning:
+    pm10readIndex = 0;
+  }
+
+  pm25average = pm25total / numReadings;
+  pm10average = pm10total / numReadings;
+
+
+
+
 }
 
 
@@ -312,11 +368,16 @@ void writeThingSpeak(void)
   startThingSpeakCmd();
   String getStr = "GET /update?api_key=";
   getStr += myAPIkey;
+  getStr +="&field1=";
+  getStr += String(pm25average);
+  getStr +="&field2=";
+  getStr += String(pm10average);
   getStr +="&field3=";
   getStr += String(temp_f);
   getStr +="&field4=";
   getStr += String(humidity);
   getStr += "\r\n\r\n";
+  lcd.print(".");
   GetThingspeakcmd(getStr);
   pmSerial.listen();
 
@@ -348,6 +409,7 @@ void startThingSpeakCmd(void)
   ESP8266.println(cmd);
   Serial.print("Start Commands: ");
   Serial.println(cmd);
+  lcd.print(".");
 
   if(ESP8266.find("Error"))
   {
@@ -383,6 +445,7 @@ String GetThingspeakcmd(String getStr)
     }
     Serial.print(F("MessageBody received: "));
     Serial.println(messageBody);
+    lcd.print(".");
     return messageBody;
   }
   else
