@@ -18,6 +18,7 @@ class DashCam:
         if not os.path.exists(self.outputPath):
             os.mkdir(self.outputPath)
 
+        ### potetiall chage os.path.sep.joi to waht i use aboce for output path
         self.p = os.path.sep.join((self.outputPath, self.filename))
         print(self.p)
 
@@ -88,7 +89,7 @@ class DashCam:
         button = Button(21)
 
     def startVideo(self):
-        while button.is_pressed:
+        while button.is_pressed():
             ret, frame = self.cap.read()
             self.out.write(frame)
             self.cv2.imshow('frame', frame)

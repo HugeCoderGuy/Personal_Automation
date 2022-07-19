@@ -71,15 +71,17 @@ boolean error;
 
 /// Buttons and lights
 uint16_t hue =  0;
-bool pixel_state;
+bool pixel_state = false;
+bool sec_state = false;
 #define LED    6
 #define button_switch                        18 // external interrupt pin
 #define secuirty_switch                      19 // external interrupt pin
 
 #define switched                            true // value if the button switch has been pressed
+#define switched_sec                        true // value if the button switch has been pressed
 #define triggered                           true // controls interrupt handler
 #define interrupt_trigger_type            FALLING// interrupt triggered on a RISING input
-#define debounce                              10 // time to wait in milli secs
+#define debounce                              5 // time to wait in milli secs
 
 volatile  bool interrupt_process_status = {
   !triggered                                     // start with no switch press pending, ie false (!triggered)
@@ -105,11 +107,9 @@ void setup()
   lcd.print(F("System Setup..."));
   Serial.begin(9600);
   ESP8266.begin(9600);
-  
 
   dht.begin();
-
-  bool pixel_state = false;
+  
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
 
@@ -123,13 +123,10 @@ void setup()
 
   // plant buttons setup
   pinMode(security_switch, INPUT_PULLUP);
-
   attachInterrupt(digitalPinToInterrupt(security_switch),
                   button_interrupt_handler_security,
                   interrupt_trigger_type);
-  attachInterrupt(digitalPinToInterrupt(house_switch),
-                  button_interrupt_handler_house,
-                  interrupt_trigger_type);
+
 
   // Wifi setup
   startTime = millis();
@@ -258,6 +255,39 @@ void jellyOnOff(void)
   }
 }
 
+void securityOnOff(void) 
+{
+  // test button switch and process if pressed
+  if (read_button() == switched_sec) {
+    // button on/off cycle now complete, so flip LED between HIGH and LOW
+    pixel_state = !pixel_state;
+    lcd.clear();
+    lcd.print(F("Jellyfish Status"));
+    lcd.setCursor(0,1);
+    lcd.print("       ON");
+    delay(500);
+
+  } if (pixel_state == true) {
+    uint32_t rgbcolor = strip.ColorHSV(hue);
+    strip.fill(rgbcolor);
+    strip.show();
+    hue += 450;
+    // Prevet overflow of hue variable
+    if (hue >= 65534) {
+      hue = 0;
+    }
+    jellyState = true;
+  } else if (jellyState == true) {
+    strip.fill(0, 0, 0);
+    strip.show();
+    lcd.clear();
+    lcd.print(F("Jellyfish Status"));
+    lcd.setCursor(0,1);
+    lcd.print("       OFF");
+    delay(500);
+    jellyState = false;
+  }
+}
 
 void LCDOnOff(void)
 {
@@ -294,20 +324,6 @@ void LCDOnOff(void)
 
 }
 
-void watersched(void){
-  if (read_button_tree == switched) {
-  jap_maple = 100;
-   }
-
-  if (read_button_tree == switched) {
-    house_plants = 100;
-    }
-  if (jap_maple == 100 or house_plants == 100){
-    writeThingSpeakPlants();
-    jap_maple = 0;
-    house_plants = 0;
-    }
-}
 
 
 /// ESP8266 Wifi fuctios
@@ -357,8 +373,6 @@ void readSensors(void)
   pm10average = pm10total / numReadings;
 
 
-
-
 }
 
 
@@ -383,22 +397,7 @@ void writeThingSpeak(void)
 
 }
 
-void writeThingSpeakPlants(void)
-{
-  ESP8266.listen();
 
-  startThingSpeakCmd();
-  String getStr = F("GET /update?api_key=");
-  getStr += myAPIkey;
-  getStr +=F("&field5=");
-  getStr += String(house_plants);
-  getStr +=F("&field6=");
-  getStr += String(jap_maple);
-  getStr += F("\r\n\r\n");
-  GetThingspeakcmd(getStr);
-  pmSerial.listen();
-
-}
 
 void startThingSpeakCmd(void)
 {
@@ -490,7 +489,6 @@ void startAQIapi(void)
   }
 }
 
-// SERIAL.WRITEEE VS SEREIAL PRIT
 String GetAQIapi(void)
 {
   //String getStr = "GET /aq/observation/zipCode/current/?format=application/json&zipCode=94501&distance=3&API_KEY=33628645-4EE3-4D27-A826-479EDB82E726";
@@ -562,7 +560,7 @@ void button_interrupt_handler()
     }
   }
 } // end of button_interrupt_handler
-void button_interrupt_handler_tree()
+void button_interrupt_handler_security()
 {
   if (initialisation_complete == true)
   { //  all variables are initialised so we are okay to continue to process this interrupt
@@ -570,30 +568,15 @@ void button_interrupt_handler_tree()
       // new interrupt so okay start a new button read process -
       // now need to wait for button release plus debounce period to elapse
       // this will be done in the button_read function
-      if (digitalRead(tree_switch) == LOW) {
+      if (digitalRead(security_switch) == LOW) {
         // button pressed, so we can start the read on/off + debounce cycle wich will
         // be completed by the button_read() function.
-        tree_interrupt_process_status = triggered;  // keep this ISR 'quiet' until button read fully completed
+        security_interrupt_process_status = triggered;  // keep this ISR 'quiet' until button read fully completed
       }
     }
   }
 } // end of button_interrupt_handler
-void button_interrupt_handler_house()
-{
-  if (initialisation_complete == true)
-  { //  all variables are initialised so we are okay to continue to process this interrupt
-    if (interrupt_process_status == !triggered) {
-      // new interrupt so okay start a new button read process -
-      // now need to wait for button release plus debounce period to elapse
-      // this will be done in the button_read function
-      if (digitalRead(house_switch) == LOW) {
-        // button pressed, so we can start the read on/off + debounce cycle wich will
-        // be completed by the button_read() function.
-        house_interrupt_process_status = triggered;  // keep this ISR 'quiet' until button read fully completed
-      }
-    }
-  }
-} // end of button_interrupt_handler
+
 
 bool read_button() {
   int button_reading;
@@ -623,17 +606,16 @@ bool read_button() {
   return !switched; // either no press request or debounce period not elapsed
 } // end of read_button function
 
-// Tree read butto
-bool read_button_tree() {
+bool read_button_security() {
   int button_reading;
   // static variables because we need to retain old values between function calls
   static bool     switching_pending = false;
   static long int elapse_timer;
-  if (tree_interrupt_process_status == triggered) {
+  if (security_interrupt_process_status == triggered) {
     // interrupt has been raised on this button so now need to complete
     // the button read process, ie wait until it has been released
     // and debounce time elapsed
-    button_reading = digitalRead(tree_switch);
+    button_reading = digitalRead(security);
     if (button_reading == LOW) {
       // switch is pressed, so start/restart wait for button relealse, plus end of debounce process
       switching_pending = true;
@@ -644,39 +626,10 @@ bool read_button_tree() {
       if (millis() - elapse_timer >= debounce) {
         // dounce time elapsed, so switch press cycle complete
         switching_pending = false;             // reset for next button press interrupt cycle
-        tree_interrupt_process_status = !triggered; // reopen ISR for business now button on/off/debounce cycle complete
-        return switched;                       // advise that switch has been pressed
+        security_interrupt_process_status = !triggered; // reopen ISR for business now button on/off/debounce cycle complete
+        return switched_sec;                       // advise that switch has been pressed
       }
     }
   }
-  return !switched; // either no press request or debounce period not elapsed
-} // end of read_button function
-
-// houseplat read fuctio
-bool read_button_house() {
-  int button_reading;
-  // static variables because we need to retain old values between function calls
-  static bool     switching_pending = false;
-  static long int elapse_timer;
-  if (house_interrupt_process_status == triggered) {
-    // interrupt has been raised on this button so now need to complete
-    // the button read process, ie wait until it has been released
-    // and debounce time elapsed
-    button_reading = digitalRead(house_switch);
-    if (button_reading == LOW) {
-      // switch is pressed, so start/restart wait for button relealse, plus end of debounce process
-      switching_pending = true;
-      elapse_timer = millis(); // start elapse timing for debounce checking
-    }
-    if (switching_pending && button_reading == HIGH) {
-      // switch was pressed, now released, so check if debounce time elapsed
-      if (millis() - elapse_timer >= debounce) {
-        // dounce time elapsed, so switch press cycle complete
-        switching_pending = false;             // reset for next button press interrupt cycle
-        interrupt_process_status = !triggered; // reopen ISR for business now button on/off/debounce cycle complete
-        return switched;                       // advise that switch has been pressed
-      }
-    }
-  }
-  return !switched; // either no press request or debounce period not elapsed
+  return !switched_sec; // either no press request or debounce period not elapsed
 } // end of read_button function
