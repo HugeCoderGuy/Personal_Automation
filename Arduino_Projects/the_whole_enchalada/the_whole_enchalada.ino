@@ -27,6 +27,11 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #define LCD_Backlight 3 // 15. BL1 - Backlight +                                Emitter of 2N3904, Collector to VCC, Base to D10 via 10K resistor
 
 
+// security 
+int security = 8;                 // PIR Out pin 
+bool security_state = false;      // PIR state
+
+
 // setup DHT Sensor
 #define DHTTYPE     DHT11
 #define DHTPIN      46
@@ -121,11 +126,13 @@ void setup()
                   button_interrupt_handler,
                   interrupt_trigger_type);
 
-  // plant buttons setup
-  pinMode(security_switch, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(security_switch),
+  // security buttons setup
+  pinMode(security, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(security),
                   button_interrupt_handler_security,
                   interrupt_trigger_type);
+  pinMode(security, INPUT);     
+
 
 
   // Wifi setup
@@ -262,9 +269,9 @@ void securityOnOff(void)
     // button on/off cycle now complete, so flip LED between HIGH and LOW
     pixel_state = !pixel_state;
     lcd.clear();
-    lcd.print(F("Jellyfish Status"));
+    lcd.print(F(" Security Mode:"));
     lcd.setCursor(0,1);
-    lcd.print("       ON");
+    lcd.print("     ACTIVE");
     delay(500);
 
   } if (pixel_state == true) {
@@ -276,14 +283,13 @@ void securityOnOff(void)
     if (hue >= 65534) {
       hue = 0;
     }
-    jellyState = true;
-  } else if (jellyState == true) {
+  } else if (security_state == false) {
     strip.fill(0, 0, 0);
     strip.show();
     lcd.clear();
-    lcd.print(F("Jellyfish Status"));
+    lcd.print(F(" Security Mode:"));
     lcd.setCursor(0,1);
-    lcd.print("       OFF");
+    lcd.print("  DEACTIVATED");
     delay(500);
     jellyState = false;
   }
@@ -568,7 +574,7 @@ void button_interrupt_handler_security()
       // new interrupt so okay start a new button read process -
       // now need to wait for button release plus debounce period to elapse
       // this will be done in the button_read function
-      if (digitalRead(security_switch) == LOW) {
+      if (digitalRead(security) == LOW) {
         // button pressed, so we can start the read on/off + debounce cycle wich will
         // be completed by the button_read() function.
         security_interrupt_process_status = triggered;  // keep this ISR 'quiet' until button read fully completed
