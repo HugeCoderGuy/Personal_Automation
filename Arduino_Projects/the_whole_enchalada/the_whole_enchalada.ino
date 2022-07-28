@@ -29,6 +29,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // security 
 int security = 8;                 // PIR Out pin 
+int security_butto = 19;
 bool security_state = false;      // PIR state
 
 
@@ -42,7 +43,9 @@ SoftwareSerial pmSerial(12, 13);
 Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
 int pm25;
 int pm10;
-const int numReadings = 40; 
+int pm25old;
+int pm10old;
+const int numReadings = 10; 
 int pm25readings[numReadings];      // the readings from the analog input
 int pm25readIndex = 0;              // the index of the current reading
 int pm25total = 0;                  // the running total
@@ -53,7 +56,7 @@ int pm10total = 0;                  // the running total
 int pm10average = 0;                // the average
 
 
-#define LIGHTP      A15
+#define LIGHTP      A8
 bool LCDOn = true;
 int lightThresh = 150;
 
@@ -61,7 +64,6 @@ int lightThresh = 150;
 byte humidity, temp_f, temp_c;
 unsigned int light;
 bool jellyState = true;
-bool securityState = false;
 
 unsigned long writingTimer = 60;
 unsigned long startTime = 0;
@@ -127,8 +129,8 @@ void setup()
                   interrupt_trigger_type);
 
   // security buttons setup
-  pinMode(security, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(security),
+  pinMode(security_butto, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(security_butto),
                   button_interrupt_handler_security,
                   interrupt_trigger_type);
   pinMode(security, INPUT);     
@@ -343,6 +345,20 @@ void readSensors(void)
 
   pm25 = data.pm25_standard;
   pm10 = data.pm10_standard;
+
+  if (abs(pm25 - pm25old) > 100){
+    pm25 = pm25old;
+  }
+  else{
+    pm25old = pm25;
+  }
+  if (abs(pm10 - pm10old) > 100){
+    pm10 = pm10old;
+  }
+  else{
+    pm10old = pm10;
+  }
+  
 
   // subtract the last reading:
   pm25total = pm25total - pm25readings[pm25readIndex];
@@ -574,7 +590,7 @@ void button_interrupt_handler_security()
       // new interrupt so okay start a new button read process -
       // now need to wait for button release plus debounce period to elapse
       // this will be done in the button_read function
-      if (digitalRead(security) == LOW) {
+      if (digitalRead(security_butto) == LOW) {
         // button pressed, so we can start the read on/off + debounce cycle wich will
         // be completed by the button_read() function.
         security_interrupt_process_status = triggered;  // keep this ISR 'quiet' until button read fully completed
@@ -621,7 +637,7 @@ bool read_button_security() {
     // interrupt has been raised on this button so now need to complete
     // the button read process, ie wait until it has been released
     // and debounce time elapsed
-    button_reading = digitalRead(security);
+    button_reading = digitalRead(security_butto);
     if (button_reading == LOW) {
       // switch is pressed, so start/restart wait for button relealse, plus end of debounce process
       switching_pending = true;

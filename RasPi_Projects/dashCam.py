@@ -2,7 +2,7 @@ import cv2
 import os
 import datetime
 import time
-from gpiozero import Button
+# from gpiozero import Button
 
 
 #tod: files ot uploadig to root directory ad dashcam folder
@@ -12,7 +12,7 @@ class DashCam:
     def __init__(self):
         print("goig")
         ts = datetime.datetime.now()
-        self.filename = "{}.avi".format(ts.strftime("%m-%d-%Y_%H-%M-%S"))
+        self.filename = "{}.mp4".format(ts.strftime("%m-%d-%Y_%H-%M-%S"))
         self.outputPath = os.path.join(os.getcwd(), "dashCam")
         print(self.outputPath)
         if not os.path.exists(self.outputPath):
@@ -25,41 +25,41 @@ class DashCam:
         now = time.time()
 
         # clear old videos
-        for f in os.listdir(self.outputPath):
-            f = os.path.join(self.outputPath, f)
-            # remove files older than 10 days
-            if os.stat(f).st_mtime < now - 10 * 86400:
-                if os.path.isfile(f):
-                    os.remove(os.path.join(self.outputPath, f))
+        # for f in os.listdir(self.outputPath):
+        #     f = os.path.join(self.outputPath, f)
+        #     # remove files older than 10 days
+        #     if os.stat(f).st_mtime < now - 10 * 86400:
+        #         if os.path.isfile(f):
+        #             os.remove(os.path.join(self.outputPath, f))
 
-        statvfs = os.statvfs('/home/pi/')
-        usedGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # used space w/ Pi
-        availableGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # free space w/ Pi
-        if availableGB <= 5:
-            # # Get list of all files only in the given directory
-            # list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.p, x)),
-            #                        os.listdir(self.p))
-            # # Sort list of files based on last modification time in ascending order
-            # list_of_files = sorted(list_of_files,
-            #                        key=lambda x: os.path.getmtime(os.path.join(self.p, x))
-            #                        )
-
-## code above has differet os.path. Istead usig code from testig
-            # Get list of all files only in the given directory
-            list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.outputPath, x)),
-                                   os.listdir())
-            # Sort list of files based on last modification time in ascending order
-            list_of_files = sorted(list_of_files,
-                                   key=lambda x: os.path.getmtime(os.path.join(self.outputPath, x))
-                                   )
-
-            # delete the oldest three videos
-            for file_name in list_of_files[0:3]:
-                file_path = os.path.join(self.outputPath, file_name)
-                timestamp_str = time.strftime('%m/%d/%Y :: %H:%M:%S',
-                                              time.gmtime(os.path.getmtime(file_path)))
-                print(timestamp_str, ' -->', file_name)
-                os.remove(file_path)
+#         statvfs = os.statvfs('/home/pi/')
+#         usedGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # used space w/ Pi
+#         availableGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # free space w/ Pi
+#         if availableGB <= 5:
+#             # # Get list of all files only in the given directory
+#             # list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.p, x)),
+#             #                        os.listdir(self.p))
+#             # # Sort list of files based on last modification time in ascending order
+#             # list_of_files = sorted(list_of_files,
+#             #                        key=lambda x: os.path.getmtime(os.path.join(self.p, x))
+#             #                        )
+#
+# ## code above has differet os.path. Istead usig code from testig
+#             # Get list of all files only in the given directory
+#             list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.outputPath, x)),
+#                                    os.listdir())
+#             # Sort list of files based on last modification time in ascending order
+#             list_of_files = sorted(list_of_files,
+#                                    key=lambda x: os.path.getmtime(os.path.join(self.outputPath, x))
+#                                    )
+#
+#             # delete the oldest three videos
+#             for file_name in list_of_files[0:3]:
+#                 file_path = os.path.join(self.outputPath, file_name)
+#                 timestamp_str = time.strftime('%m/%d/%Y :: %H:%M:%S',
+#                                               time.gmtime(os.path.getmtime(file_path)))
+#                 print(timestamp_str, ' -->', file_name)
+                # os.remove(file_path)
 
 
 
@@ -71,7 +71,8 @@ class DashCam:
         self.VIDEO_TYPE = {
             'avi': cv2.VideoWriter_fourcc(*'XVID'),
             # 'mp4': cv2.VideoWriter_fourcc(*'H264'),
-            'mp4': cv2.VideoWriter_fourcc(*'XVID'),
+            # 'mp4': cv2.VideoWriter_fourcc(*'XVID'),
+            'mp4': cv2.VideoWriter_fourcc(*'DIVX')
         }
 
         self.STD_DIMENSIONS = {
@@ -86,13 +87,13 @@ class DashCam:
                                    25, self.get_dims(self.cap, self.res))
 
         #setup pi to moiter
-        button = Button(21)
+        # button = Button(21)
 
     def startVideo(self):
-        while button.is_pressed():
-            ret, frame = self.cap.read()
-            self.out.write(frame)
-            self.cv2.imshow('frame', frame)
+        # while button.is_pressed():
+        ret, frame = self.cap.read()
+        self.out.write(frame)
+        cv2.imshow('frame', frame)
 
 
 
@@ -122,7 +123,7 @@ class DashCam:
         while time.time() - car_off <= 90:
             ret, frame = self.cap.read()
             self.out.write(frame)
-            self.cv2.imshow('frame', frame)
+            cv2.imshow('frame', frame)
 
         # double check car didot go o off
         self.startVideo()
@@ -138,5 +139,5 @@ if __name__ == "__main__":
 
     dash.startVideo()
 
-    dash.gracefulShutdown()s
+    dash.gracefulShutdown()
 
