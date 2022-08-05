@@ -2,6 +2,7 @@ import cv2
 import os
 import datetime
 import time
+import sys
 # from gpiozero import Button
 
 
@@ -12,7 +13,7 @@ class DashCam:
     def __init__(self):
         print("goig")
         ts = datetime.datetime.now()
-        self.filename = "{}.mp4".format(ts.strftime("%m-%d-%Y_%H-%M-%S"))
+        self.filename = "{}.avi".format(ts.strftime("%m-%d-%Y_%H-%M-%S"))
         self.outputPath = os.path.join(os.getcwd(), "dashCam")
         print(self.outputPath)
         if not os.path.exists(self.outputPath):
@@ -69,7 +70,8 @@ class DashCam:
         self.res = '720p'
 
         self.VIDEO_TYPE = {
-            'avi': cv2.VideoWriter_fourcc(*'XVID'),
+            # 'avi': cv2.VideoWriter_fourcc(*'XVID'),
+            'avi': cv2.VideoWriter_fourcc(*'MJPG'),
             # 'mp4': cv2.VideoWriter_fourcc(*'H264'),
             # 'mp4': cv2.VideoWriter_fourcc(*'XVID'),
             'mp4': cv2.VideoWriter_fourcc(*'DIVX')
@@ -95,8 +97,6 @@ class DashCam:
         self.out.write(frame)
         cv2.imshow('frame', frame)
 
-
-
     # grab resolution dimensions and set video capture to it.
     def get_dims(self, cap, res='720p'):
         width, height = self.STD_DIMENSIONS["480p"]
@@ -120,18 +120,24 @@ class DashCam:
 
     def gracefulShutdown(self):
         car_off = time.time()
-        while time.time() - car_off <= 90:
+        while time.time() - car_off <= 10:
             ret, frame = self.cap.read()
             self.out.write(frame)
             cv2.imshow('frame', frame)
+            print("here")
+
+        ## double check to see if car is bback o
+        # if button.is_pressed():
+        #     self.cap.release()
+        #     self.out.release()
+        #     cv2.destroyAllWindows()
+        #     os.execv(sys.executable, ['python'] + sys.argv)
 
         # double check car didot go o off
-        self.startVideo()
         self.cap.release()
         self.out.release()
         cv2.destroyAllWindows()
-        os.system("sudo shutdown -h now")
-
+        # os.system("sudo shutdown -h now")
 
 
 if __name__ == "__main__":

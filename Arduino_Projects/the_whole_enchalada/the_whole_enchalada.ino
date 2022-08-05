@@ -30,7 +30,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 // security 
 int security = 8;                 // PIR Out pin 
 int security_butto = 19;
-bool security_state = false;      // PIR state
+bool pirState = false;
 
 
 // setup DHT Sensor
@@ -269,14 +269,14 @@ void securityOnOff(void)
   // test button switch and process if pressed
   if (read_button() == switched_sec) {
     // button on/off cycle now complete, so flip LED between HIGH and LOW
-    pixel_state = !pixel_state;
+    pirState = !pirState;
     lcd.clear();
     lcd.print(F(" Security Mode:"));
     lcd.setCursor(0,1);
     lcd.print("     ACTIVE");
     delay(500);
 
-  } if (pixel_state == true) {
+  } if (pirState == true) {
     uint32_t rgbcolor = strip.ColorHSV(hue);
     strip.fill(rgbcolor);
     strip.show();
@@ -285,7 +285,7 @@ void securityOnOff(void)
     if (hue >= 65534) {
       hue = 0;
     }
-  } else if (security_state == false) {
+  } else if (pirState == false) {
     strip.fill(0, 0, 0);
     strip.show();
     lcd.clear();
@@ -412,6 +412,10 @@ void writeThingSpeak(void)
   getStr += String(temp_f);
   getStr +="&field4=";
   getStr += String(humidity);
+  if (pirState==true){
+    getStr += "&field5=";
+    getStr += String(1);
+  }
   getStr += "\r\n\r\n";
   lcd.print(".");
   GetThingspeakcmd(getStr);
