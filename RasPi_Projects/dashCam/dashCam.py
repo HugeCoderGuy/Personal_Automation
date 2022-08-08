@@ -5,11 +5,12 @@ import time
 import sys
 from gpiozero import Button
 from threading import Timer
+import shutil
+
 
 
 
 #tod: files ot uploadig to root directory ad dashcam folder
-# todo: video rus really quickly
 
 class DashCam:
     def __init__(self, clear_space=True, debug=False):
@@ -18,7 +19,8 @@ class DashCam:
 
         ts = datetime.datetime.now()
         self.filename = "{}.avi".format(ts.strftime("%m-%d-%Y_%H-%M-%S"))
-        self.outputPath = os.path.join(os.getcwd(), "dashCam")
+        self.outputPath = os.path.join(os.getcwd(), "cam_videos")
+        self.first_path = os.path.join(os.getcwd(), self.filename)
         print(self.outputPath)
         if not os.path.exists(self.outputPath):
             os.mkdir(self.outputPath)
@@ -35,12 +37,24 @@ class DashCam:
                 # remove files older than 10 days
                 if os.stat(f).st_mtime < now - 10 * 86400:
                     if os.path.isfile(f):
-                        os.remove(os.path.join(self.outputPath, f))
+                        if not self.debug_mode:
+                            os.remove(os.path.join(self.outputPath, f))
+                        else:
+                            print(os.path.join(self.outputPath, f))
 
-            statvfs = os.statvfs('/home/pi/')
-            usedGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # used space w/ Pi
-            availableGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # free space w/ Pi
-            if availableGB <= 7:
+            if not self.debug_mode:
+                statvfs = os.statvfs('/home/pi/')
+            else:
+                statvfs = os.statvfs('/Users/alexlewis')
+            availableGB = (statvfs.f_frsize * statvfs.f_bfree) / 10 ** 9 # used space w/ Pi
+            total_spaceGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # free space w/ Pi
+            if self.debug_mode:
+                print("total space:", total_spaceGB)
+                print('avial:', availableGB)
+                print("-----")
+
+
+            # if availableGB <= 7:
                 # # Get list of all files only in the given directory
                 # list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.p, x)),
                 #                        os.listdir(self.p))
@@ -51,22 +65,26 @@ class DashCam:
 
     ## code above has differet os.path. Istead usig code from testig
                 # Get list of all files only in the given directory
-                list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.outputPath, x)),
-                                       os.listdir())
-                # Sort list of files based on last modification time in ascending order
-                list_of_files = sorted(list_of_files,
-                                       key=lambda x: os.path.getmtime(os.path.join(self.outputPath, x))
-                                       )
+            list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.outputPath, x)),
+                                   os.listdir(self.outputPath))
+            # Sort list of files based on last modification time in ascending order
+            list_of_files = sorted(list_of_files,
+                                   key=lambda x: os.path.getmtime(os.path.join(self.outputPath, x))
+                                   )
 
-                # delete the oldest three videos
-                for file_name in list_of_files[0:3]:
-                    file_path = os.path.join(self.outputPath, file_name)
-                    timestamp_str = time.strftime('%m/%d/%Y :: %H:%M:%S',
-                                                  time.gmtime(os.path.getmtime(file_path)))
-                    print(timestamp_str, ' -->', file_name)
+            # delete the oldest three videos
+            for file_name in list_of_files[0:3]:
+                file_path = os.path.join(self.outputPath, file_name)
+                timestamp_str = time.strftime('%m/%d/%Y :: %H:%M:%S',
+                                              time.gmtime(os.path.getmtime(file_path)))
+                print(timestamp_str, ' -->', file_name)
+                if not self.debug_mode:
                     os.remove(file_path)
+                else:
+                    print(file_path)
 
-        # start new video
+
+                    # start new video
         self.frames_per_second = 24.0
         self.res = '720p'
 
@@ -138,7 +156,6 @@ class DashCam:
             self.out.write(frame)
             if self.debug_mode:
                 cv2.imshow('frame', frame)
-                print("here")
 
         ## double check to see if car is bback o
         if not self.debug_mode:
@@ -149,7 +166,9 @@ class DashCam:
         self.cap.release()
         self.out.release()
         cv2.destroyAllWindows()
-        # os.system("sudo shutdown -h now")
+        shutil.move(self.first_path, self.outputPath)
+        if not self.debug_mode:
+            os.system("sudo shutdown -h now")
 
     def restart_system(self):
         if self.debug_mode:
@@ -157,11 +176,12 @@ class DashCam:
         self.cap.release()
         self.out.release()
         cv2.destroyAllWindows()
+        shutil.move(self.first_path, self.outputPath)
         os.execv(sys.executable, ['python'] + sys.argv)
 
 
 if __name__ == "__main__":
-    dash = DashCam(clear_space=False, debug=True)
+    dash = DashCam(clear_space=True, debug=True)
 
     dash.start_video()
 
