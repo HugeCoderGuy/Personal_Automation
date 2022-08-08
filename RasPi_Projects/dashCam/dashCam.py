@@ -21,12 +21,8 @@ class DashCam:
         self.filename = "{}.avi".format(ts.strftime("%m-%d-%Y_%H-%M-%S"))
         self.outputPath = os.path.join(os.getcwd(), "cam_videos")
         self.first_path = os.path.join(os.getcwd(), self.filename)
-        print(self.outputPath)
         if not os.path.exists(self.outputPath):
             os.mkdir(self.outputPath)
-
-        ### potetiall chage os.path.sep.joi to waht i use aboce for output path
-        self.p = os.path.sep.join((self.outputPath, self.filename))
 
         now = time.time()
 
@@ -35,7 +31,7 @@ class DashCam:
             for f in os.listdir(self.outputPath):
                 f = os.path.join(self.outputPath, f)
                 # remove files older than 10 days
-                if os.stat(f).st_mtime < now - 10 * 86400:
+                if os.stat(f).st_mtime < now - 10 * (24*60*60):
                     if os.path.isfile(f):
                         if not self.debug_mode:
                             os.remove(os.path.join(self.outputPath, f))
@@ -53,35 +49,11 @@ class DashCam:
                 print('avial:', availableGB)
                 print("-----")
 
+            if availableGB <= 7:
+                self.delete_oldest_three()
 
-            # if availableGB <= 7:
-                # # Get list of all files only in the given directory
-                # list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.p, x)),
-                #                        os.listdir(self.p))
-                # # Sort list of files based on last modification time in ascending order
-                # list_of_files = sorted(list_of_files,
-                #                        key=lambda x: os.path.getmtime(os.path.join(self.p, x))
-                #                        )
-
-    ## code above has differet os.path. Istead usig code from testig
-                # Get list of all files only in the given directory
-            list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.outputPath, x)),
-                                   os.listdir(self.outputPath))
-            # Sort list of files based on last modification time in ascending order
-            list_of_files = sorted(list_of_files,
-                                   key=lambda x: os.path.getmtime(os.path.join(self.outputPath, x))
-                                   )
-
-            # delete the oldest three videos
-            for file_name in list_of_files[0:3]:
-                file_path = os.path.join(self.outputPath, file_name)
-                timestamp_str = time.strftime('%m/%d/%Y :: %H:%M:%S',
-                                              time.gmtime(os.path.getmtime(file_path)))
-                print(timestamp_str, ' -->', file_name)
-                if not self.debug_mode:
-                    os.remove(file_path)
-                else:
-                    print(file_path)
+            if self.debug_mode:
+                self.delete_oldest_three()
 
 
                     # start new video
@@ -110,9 +82,8 @@ class DashCam:
         if not self.debug_mode:
             self.button = Button(21)
 
-        # self.timer = Timer(3300, self.restart_system())  # restart system after 55mins
         if self.debug_mode:
-            self.timer = Timer(4, lambda: self.restart_system())  # restart system after 55mins
+            self.timer = Timer(4, lambda: self.restart_system())  # restart system after 4s
         else:
             self.timer = Timer(55*60, self.restart_system())  # restart system after 55mins
         self.timer.start()
@@ -120,6 +91,7 @@ class DashCam:
     def start_video(self):
         if not self.debug_mode:
             while self.button.is_pressed():
+                print("butto is high")
                 ret, frame = self.cap.read()
                 self.out.write(frame)
                 cv2.imshow('frame', frame)
@@ -178,6 +150,24 @@ class DashCam:
         cv2.destroyAllWindows()
         shutil.move(self.first_path, self.outputPath)
         os.execv(sys.executable, ['python'] + sys.argv)
+
+    def delete_oldest_three(self):
+        list_of_files = filter(lambda x: os.path.isfile(os.path.join(self.outputPath, x)),
+                               os.listdir(self.outputPath))
+        # Sort list of files based on last modification time in ascending order
+        list_of_files = sorted(list_of_files,
+                               key=lambda x: os.path.getmtime(os.path.join(self.outputPath, x))
+                               )
+
+        # delete the oldest three videos
+        for file_name in list_of_files[0:3]:
+            file_path = os.path.join(self.outputPath, file_name)
+            timestamp_str = time.strftime('%m/%d/%Y :: %H:%M:%S',
+                                          time.gmtime(os.path.getmtime(file_path)))
+            if not self.debug_mode:
+                os.remove(file_path)
+            else:
+                print(timestamp_str, ' -->', file_name)
 
 
 if __name__ == "__main__":
