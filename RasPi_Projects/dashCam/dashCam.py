@@ -3,14 +3,10 @@ import os
 import datetime
 import time
 import sys
-from gpiozero import Button
+import RPi.GPIO as GPIO
 from threading import Timer
 import shutil
 
-
-
-
-#tod: files ot uploadig to root directory ad dashcam folder
 
 class DashCam:
     def __init__(self, clear_space=True, debug=False):
@@ -39,9 +35,9 @@ class DashCam:
                             print(os.path.join(self.outputPath, f))
 
             if not self.debug_mode:
-                statvfs = os.statvfs('/home/pi/')
+                statvfs = os.statvfs('/home/alexscottlewis/')
             else:
-                statvfs = os.statvfs('/Users/alexlewis')
+                statvfs = os.statvfs('/home/alexscottlewis/')
             availableGB = (statvfs.f_frsize * statvfs.f_bfree) / 10 ** 9 # used space w/ Pi
             total_spaceGB = (statvfs.f_frsize * statvfs.f_blocks)/10**9 # free space w/ Pi
             if self.debug_mode:
@@ -61,10 +57,7 @@ class DashCam:
         self.res = '720p'
 
         self.VIDEO_TYPE = {
-            # 'avi': cv2.VideoWriter_fourcc(*'XVID'),
             'avi': cv2.VideoWriter_fourcc(*'MJPG'),
-            # 'mp4': cv2.VideoWriter_fourcc(*'H264'),
-            # 'mp4': cv2.VideoWriter_fourcc(*'XVID'),
             'mp4': cv2.VideoWriter_fourcc(*'DIVX')
         }
 
@@ -77,28 +70,29 @@ class DashCam:
         self.cap = cv2.VideoCapture(0)
         self.out = cv2.VideoWriter(self.filename, self.get_video_type(self.filename),
                                    25, self.get_dims(self.cap, self.res))
-
+        
+        
         # setup pi to check car on
         if not self.debug_mode:
-            self.button = Button(21)
-
-        if self.debug_mode:
-            self.timer = Timer(4, lambda: self.restart_system())  # restart system after 4s
-        else:
-            self.timer = Timer(55*60, self.restart_system())  # restart system after 55mins
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(21, GPIO.IN)
+            print(GPIO.input(21))
+                    
+        seconds_till_restart = 1*60
+#         if self.debug_mode:
+        self.timer = Timer(seconds_till_restart, lambda: self.restart_system())  # restart system after 4s
+#         else:
+#             self.timer = Timer(55.00, self.restart_system())  # restart system after 55mins
         self.timer.start()
 
     def start_video(self):
         if not self.debug_mode:
-            while self.button.is_pressed():
-                print("butto is high")
+            while GPIO.input(21):
                 ret, frame = self.cap.read()
                 self.out.write(frame)
-                cv2.imshow('frame', frame)
         else:
             ret, frame = self.cap.read()
             self.out.write(frame)
-            cv2.imshow('frame', frame)
 
     # grab resolution dimensions and set video capture to it.
     def get_dims(self, cap, res='720p'):
@@ -123,7 +117,7 @@ class DashCam:
 
     def graceful_shutdown(self):
         car_off = time.time()
-        while time.time() - car_off <= 10:
+        while time.time() - car_off <= 30:
             ret, frame = self.cap.read()
             self.out.write(frame)
             if self.debug_mode:
@@ -131,7 +125,7 @@ class DashCam:
 
         ## double check to see if car is bback o
         if not self.debug_mode:
-            if self.button.is_pressed():
+            if GPIO.input(21):
                 self.restart_system()
 
         # double check car didot go o off
@@ -171,7 +165,7 @@ class DashCam:
 
 
 if __name__ == "__main__":
-    dash = DashCam(clear_space=True, debug=True)
+    dash = DashCam(clear_space=True, debug=False)
 
     dash.start_video()
 
