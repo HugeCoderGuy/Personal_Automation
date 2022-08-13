@@ -6,6 +6,7 @@ import sys
 import RPi.GPIO as GPIO
 from threading import Timer
 import shutil
+import numpy as np
 
 
 class DashCam:
@@ -21,6 +22,9 @@ class DashCam:
             os.mkdir(self.outputPath)
 
         now = time.time()
+
+        # last chance to prevent videos from being deleted on boot.
+        self.stop_auto_boot()
 
         if self.clear_space:
             # clear old videos
@@ -57,7 +61,10 @@ class DashCam:
         self.res = '720p'
 
         self.VIDEO_TYPE = {
+            # 'avi': cv2.VideoWriter_fourcc(*'XVID'),
             'avi': cv2.VideoWriter_fourcc(*'MJPG'),
+            # 'mp4': cv2.VideoWriter_fourcc(*'H264'),
+            # 'mp4': cv2.VideoWriter_fourcc(*'XVID'),
             'mp4': cv2.VideoWriter_fourcc(*'DIVX')
         }
 
@@ -69,30 +76,36 @@ class DashCam:
         }
         self.cap = cv2.VideoCapture(0)
         self.out = cv2.VideoWriter(self.filename, self.get_video_type(self.filename),
-                                   25, self.get_dims(self.cap, self.res))
-        
-        
+                                   self.frames_per_second, self.get_dims(self.cap, self.res))
+
+
         # setup pi to check car on
         if not self.debug_mode:
             GPIO.setmode(GPIO.BCM)
             GPIO.setup(21, GPIO.IN)
             print(GPIO.input(21))
-                    
+
         seconds_till_restart = 1*60
 #         if self.debug_mode:
         self.timer = Timer(seconds_till_restart, lambda: self.restart_system())  # restart system after 4s
 #         else:
 #             self.timer = Timer(55.00, self.restart_system())  # restart system after 55mins
         self.timer.start()
+        self.frames = 0
+        self.start_time = 0
 
     def start_video(self):
+        self.start_time = time.time()
+
         if not self.debug_mode:
             while GPIO.input(21):
                 ret, frame = self.cap.read()
                 self.out.write(frame)
+                self.frames += 1
         else:
             ret, frame = self.cap.read()
             self.out.write(frame)
+            self.frames += 1
 
     # grab resolution dimensions and set video capture to it.
     def get_dims(self, cap, res='720p'):
@@ -120,8 +133,7 @@ class DashCam:
         while time.time() - car_off <= 30:
             ret, frame = self.cap.read()
             self.out.write(frame)
-            if self.debug_mode:
-                cv2.imshow('frame', frame)
+            self.frames += 1
 
         ## double check to see if car is bback o
         if not self.debug_mode:
@@ -163,9 +175,24 @@ class DashCam:
             else:
                 print(timestamp_str, ' -->', file_name)
 
+    def stop_auto_boot(self):
+        # prevent script from running if no camera is connected. This protects old videos that might have a crash
+        # from being automatically deleted.
+        cap2 = cv2.VideoCapture(0)
+        if cap2 is None or not cap2.isOpened():
+            raise AttributeError("Camera is not connected!")
+        cap2.release()
+
+    def adjust_video_output(self):
+        duration = time.time() - self.start_time
+        actualFps = np.ceil(self.frames / duration)
+
+        os.system('ffmpeg -y -i {} -c copy -f h264 tmp.h264'.format(self.first_path))
+        os.system('ffmpeg -y -r {} -i tmp.h264 -c copy {}'.format(actualFps, self.first_path))
+
 
 if __name__ == "__main__":
-    dash = DashCam(clear_space=True, debug=False)
+    dash = DashCam(clear_space=True, debug=True)
 
     dash.start_video()
 
