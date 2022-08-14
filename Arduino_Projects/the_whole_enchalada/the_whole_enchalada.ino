@@ -6,9 +6,6 @@
 #include "Adafruit_PM25AQI.h"
 
 
-
-
-
 ///////////// Variable Decleratio /////////////
 
 
@@ -31,6 +28,9 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 int security = 8;                 // PIR Out pin 
 int security_butto = 19;
 bool pirState = false;
+bool pir_active = true;
+int people_here;
+int people_are_here;
 
 
 // setup DHT Sensor
@@ -209,6 +209,7 @@ void loop()
   jellyOnOff();
   updateLCD();
   LCDOnOff();
+  securityOnOff();
 
 
 
@@ -267,7 +268,7 @@ void jellyOnOff(void)
 void securityOnOff(void) 
 {
   // test button switch and process if pressed
-  if (read_button() == switched_sec) {
+  if (read_button_security() == switched_sec) {
     // button on/off cycle now complete, so flip LED between HIGH and LOW
     pirState = !pirState;
     lcd.clear();
@@ -277,23 +278,17 @@ void securityOnOff(void)
     delay(500);
 
   } if (pirState == true) {
-    uint32_t rgbcolor = strip.ColorHSV(hue);
-    strip.fill(rgbcolor);
-    strip.show();
-    hue += 450;
-    // Prevet overflow of hue variable
-    if (hue >= 65534) {
-      hue = 0;
+    pir_active = true;
+    writingTimer = 40;
     }
-  } else if (pirState == false) {
-    strip.fill(0, 0, 0);
-    strip.show();
+   else if (pir_active == false) {
     lcd.clear();
     lcd.print(F(" Security Mode:"));
     lcd.setCursor(0,1);
     lcd.print("  DEACTIVATED");
     delay(500);
-    jellyState = false;
+//    pir_active = false;
+    writingTimer = 60;
   }
 }
 
@@ -395,6 +390,18 @@ void readSensors(void)
   pm10average = pm10total / numReadings;
 
 
+  if (pir_active == true){
+    int people_here = digitalRead(security);
+    if (people_here) {
+      people_are_here = 1;
+    }
+    Serial.println("pir");
+    Serial.println(people_here);
+
+   
+  }
+  
+
 }
 
 
@@ -412,9 +419,10 @@ void writeThingSpeak(void)
   getStr += String(temp_f);
   getStr +="&field4=";
   getStr += String(humidity);
-  if (pirState==true){
+  if (pir_active==true){
     getStr += "&field5=";
-    getStr += String(1);
+    getStr += String(people_are_here);
+    people_are_here = 0;
   }
   getStr += "\r\n\r\n";
   lcd.print(".");
@@ -591,10 +599,12 @@ void button_interrupt_handler_security()
   if (initialisation_complete == true)
   { //  all variables are initialised so we are okay to continue to process this interrupt
     if (interrupt_process_status == !triggered) {
+      Serial.println("1");
       // new interrupt so okay start a new button read process -
       // now need to wait for button release plus debounce period to elapse
       // this will be done in the button_read function
       if (digitalRead(security_butto) == LOW) {
+        Serial.println("2");
         // button pressed, so we can start the read on/off + debounce cycle wich will
         // be completed by the button_read() function.
         security_interrupt_process_status = triggered;  // keep this ISR 'quiet' until button read fully completed
