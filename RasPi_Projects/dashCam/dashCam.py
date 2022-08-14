@@ -57,7 +57,7 @@ class DashCam:
 
 
                     # start new video
-        self.frames_per_second = 24.0
+        self.frames_per_second = 8.4 # decreasing fps increases length of vieo
         self.res = '720p'
 
         self.VIDEO_TYPE = {
@@ -85,7 +85,7 @@ class DashCam:
             GPIO.setup(21, GPIO.IN)
             print(GPIO.input(21))
 
-        seconds_till_restart = 1*60
+        seconds_till_restart = 1 *60
 #         if self.debug_mode:
         self.timer = Timer(seconds_till_restart, lambda: self.restart_system())  # restart system after 4s
 #         else:
@@ -130,6 +130,7 @@ class DashCam:
 
     def graceful_shutdown(self):
         car_off = time.time()
+        print("Graceful shutdown")
         while time.time() - car_off <= 30:
             ret, frame = self.cap.read()
             self.out.write(frame)
@@ -154,6 +155,7 @@ class DashCam:
         self.cap.release()
         self.out.release()
         cv2.destroyAllWindows()
+        self.adjust_video_output()
         shutil.move(self.first_path, self.outputPath)
         os.execv(sys.executable, ['python'] + sys.argv)
 
@@ -186,13 +188,15 @@ class DashCam:
     def adjust_video_output(self):
         duration = time.time() - self.start_time
         actualFps = np.ceil(self.frames / duration)
+        print(self.frames)
+        print(actualFps)
 
-        os.system('ffmpeg -y -i {} -c copy -f h264 tmp.h264'.format(self.first_path))
-        os.system('ffmpeg -y -r {} -i tmp.h264 -c copy {}'.format(actualFps, self.first_path))
+#         os.system('ffmpeg -y -i {} -c copy -f h264 tmp.h264'.format(self.filename))
+#         os.system('ffmpeg -y -r {} -i tmp.h264 -c copy {}'.format(actualFps, self.filename))
 
 
 if __name__ == "__main__":
-    dash = DashCam(clear_space=True, debug=True)
+    dash = DashCam(clear_space=True, debug=False)
 
     dash.start_video()
 
