@@ -7,11 +7,11 @@ import RPi.GPIO as GPIO
 from threading import Timer, Thread
 import shutil
 import numpy as np
-from queue import Queue
 
 
 class DashCam:
     def __init__(self, fps, clear_space=True, debug=False):
+        os.chdir('/home/alexscottlewis')
         self.clear_space = clear_space
         self.debug_mode = debug
 
@@ -29,11 +29,11 @@ class DashCam:
 
         if self.clear_space:
             # clear old videos
-            self.delete_files_after_days(10)
+            self.delete_files_after_days(7)
 
             availableGB = self.check_space('/home/alexscottlewis/')
 
-            if availableGB <= 7:
+            if availableGB <= 5:
                 self.delete_oldest_three()
 
             if self.debug_mode:
@@ -60,8 +60,9 @@ class DashCam:
         self.cap = cv2.VideoCapture(0)
         self.out = cv2.VideoWriter(self.filename, self.get_video_type(self.filename),
                                    self.frames_per_second, self.get_dims(self.cap, self.res))
-        self.Q = Queue(maxsize=125)
         self.stopped = False
+        self.cancel_video_write = False
+        (self.grabbed, self.frame) = self.cap.read()
 
         # setup pi to check car on
         if not self.debug_mode:
@@ -69,7 +70,7 @@ class DashCam:
             GPIO.setup(21, GPIO.IN)
             print(GPIO.input(21))
 
-        seconds_till_restart = 60 * 60  # restart script to prevent too long of video 60min
+        seconds_till_restart = 30 * 60  # restart script to prevent too long of video 60min
         self.timer = Timer(seconds_till_restart, lambda: self.restart_system())  # restart system after 4s
         self.timer.start()
 
@@ -79,9 +80,9 @@ class DashCam:
     # create thread object to que frames
     def start_vid_thread(self):
         # start a thread to read frames from the file video stream
-        t = Thread(target=self.update, args=())
-        t.daemon = True
-        t.start()
+        self.t = Thread(target=self.update, args=())
+        self.t.daemon = True
+        self.t.start()
         return self
 
     # update que with video frames
@@ -91,30 +92,26 @@ class DashCam:
             # if the thread indicator variable is set, stop the
             # thread
             if self.stopped:
+                print("in stopped")
+                # self.cap.release()
                 return
             # otherwise, ensure the queue has room in it
-            if not self.Q.full():
-                # read the next frame from the file
-                (grabbed, frame) = self.cap.read()
-                # if the `grabbed` boolean is `False`, then we have
-                # reached the end of the video file
-                if not grabbed:
-                    self.stop()
-                    return
-                # add the frame to the queue
-                self.Q.put(frame)
+            else:
+                (self.grabbed, self.frame) = self.cap.read()
+                print("thread")
 
-    def read(self):
-        # return next frame in the queue
-        return self.Q.get()
-
-    def more(self):
-        # return True if there are still frames in the queue
-        return self.Q.qsize() > 0
+#     def read(self):
+#         # return next frame in the queue
+#         return self.frame
+# 
+#     def more(self):
+#         # return True if there are still frames in the queue
+#         return self.Q.qsize() > 0
 
     def stop(self):
         # indicate that the thread should be stopped
         self.stopped = True
+        self.cancel_video_write = True
 
     def start_video(self):
         # document start time for debugging fps
@@ -122,13 +119,11 @@ class DashCam:
 
         if not self.debug_mode:
             # save video frames while car powered
-            while GPIO.input(21):
-                frame = self.read()
-                self.out.write(frame)
+            while GPIO.input(21) and not self.cancel_video_write:
+                self.out.write(self.frame)
                 self.frames += 1
         else:
-            frame = self.read()
-            self.out.write(frame)
+            self.out.write(self.frame)
             self.frames += 1
 
     # grab resolution dimensions and set video capture to it.
@@ -154,25 +149,26 @@ class DashCam:
 
     # close out connections to camera for proper shutdown
     def close_video_stream(self):
+        print("stoping")
         self.stop()
-        # save the last of the frames in the que
-        while self.more():
-            frame = self.read()
-            self.out.write(frame)
+        
+        # self.cap.release()
+        print("releasing")
         self.cap.release()
-        self.out.release()
-        cv2.destroyAllWindows()
+        print("closing out")
         self.adjust_video_output()
+        self.out = None
         shutil.move(self.first_path, self.outputPath)
-
+        print("complteted")
+        
     # turn off pi after 30s of car powering down
     def graceful_shutdown(self):
         car_off = time.time()
         print("Graceful shutdown")
         while time.time() - car_off <= 30:
-            frame = self.read()
-            self.out.write(frame)
+            self.out.write(self.frame)
             self.frames += 1
+            print(self.frames)
 
         # double check to see if car is back on
         if not self.debug_mode:
@@ -257,9 +253,10 @@ class DashCam:
 
 
 if __name__ == "__main__":
-    dash = DashCam(8.4, clear_space=True, debug=False)
+    dash = DashCam(8, clear_space=True, debug=True)
 
     dash.start_vid_thread()
+    time.sleep(1)
     dash.start_video()
 
     dash.graceful_shutdown()
