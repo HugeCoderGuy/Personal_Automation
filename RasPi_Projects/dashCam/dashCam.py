@@ -73,7 +73,7 @@ class DashCam:
             GPIO.setmode(GPIO.BCM)
             GPIO.setup(21, GPIO.IN)
 
-        seconds_till_restart = .1 * 60  # restart script to prevent too long of video 60min
+        seconds_till_restart = 30 * 60  # restart script to prevent too long of video 60min
         self.timer = Timer(seconds_till_restart, lambda: self.restart_system())  # restart system after 4s
         self.timer.start()
 
@@ -95,6 +95,7 @@ class DashCam:
         while True:
             # if the thread indicator variable is set, stop the thread
             if self.stopped:
+                # print("here")
                 return
             # otherwise, ensure the queue has room in it
             else:
@@ -152,6 +153,7 @@ class DashCam:
         if self.debug_mode:
             self.track_frame_rate()
         self.out = None
+        time.sleep(1)
 
         shutil.move(self.first_path, self.outputPath)
 
@@ -163,11 +165,13 @@ class DashCam:
         font = cv2.FONT_HERSHEY_SIMPLEX
         while time.time() - car_off <= 30:
             if not self.cancel_video_write:
+                temp_frame = self.frame
                 cv2.putText(self.frame, "IGNITION OFF", (25, 50), font, 1, (0, 0, 255), 2, cv2.LINE_4)
-                self.out.write(self.frame)
+                # Important, Copy frame from thread to prevent segmentation fault
+                self.out.write(temp_frame)
                 self.frames += 1
                 if self.debug_mode:
-                    print(frames)
+                    print(self.frames)
 
         # double check to see if car is back on
         if not self.debug_mode:
@@ -249,7 +253,7 @@ class DashCam:
 
 if __name__ == "__main__":
     # framerate runs fine during testing. RasPi is a little funky and needs an awkward framerate for operation
-    dash = DashCam(8.3, clear_space=True, debug=False)
+    dash = DashCam(8.4, clear_space=True, debug=False)
 
     # start video capture and video writer in seperate threads
     dash.start_vid_thread()
