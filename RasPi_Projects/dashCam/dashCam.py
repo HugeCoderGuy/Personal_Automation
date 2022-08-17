@@ -26,6 +26,7 @@ class DashCam:
 
         # last chance to prevent videos from being deleted on boot.
         self.stop_auto_boot()
+        print("[SETUP] Camera Connected!")
 
         if self.clear_space:
             # clear old videos
@@ -37,6 +38,9 @@ class DashCam:
 
             if self.debug_mode:
                 self.delete_oldest_three()
+            
+            print("[SETUP] Old and unnecessary videos have been delted.")
+            
 
         # video initialization
         self.frames_per_second = fps  # 8.4  # decreasing fps increases length of vieo bug
@@ -68,14 +72,14 @@ class DashCam:
         if not self.debug_mode:
             GPIO.setmode(GPIO.BCM)
             GPIO.setup(21, GPIO.IN)
-            print(GPIO.input(21))
 
-        seconds_till_restart = 30 * 60  # restart script to prevent too long of video 60min
+        seconds_till_restart = .1 * 60  # restart script to prevent too long of video 60min
         self.timer = Timer(seconds_till_restart, lambda: self.restart_system())  # restart system after 4s
         self.timer.start()
 
         self.frames = 0
         self.start_time = 0
+        print("[SETUP] Ready to Record! Video will loop after {} mins.".format(seconds_till_restart/60))
 
     # create thread object to que frames
     def start_vid_thread(self):
@@ -95,12 +99,7 @@ class DashCam:
             # otherwise, ensure the queue has room in it
             else:
                 (self.grabbed, self.frame) = self.cap.read()
-                print("thread")
 
-    # check current frame
-    def read(self):
-        # return next frame in the queue
-        return self.frame
 
     # stop all blocking functions once called
     def stop(self):
@@ -117,10 +116,10 @@ class DashCam:
         if not self.debug_mode:
             # save video frames while car powered
             while GPIO.input(21) and not self.cancel_video_write:
-                self.out.write(self.read())
+                self.out.write(self.frame)
                 self.frames += 1
         else:
-            self.out.write(self.read())
+            self.out.write(self.frame)
             self.frames += 1
 
     # grab resolution dimensions and set video capture to it.
@@ -150,20 +149,22 @@ class DashCam:
 
         # preform final close up actions
         self.cap.release()
-        self.out.release()
         if self.debug_mode:
             self.track_frame_rate()
+        self.out = None
+
         shutil.move(self.first_path, self.outputPath)
 
     # turn off pi after 30s of car powering down
     def graceful_shutdown(self):
         car_off = time.time()
-        if self.debug_mode:
-            print("graceful shutdown")
+        print("[DashCam] Begining system Shutdown.")
         while time.time() - car_off <= 30:
-            frame = self.read()
-            self.out.write(frame)
-            self.frames += 1
+            if not self.cancel_video_write:
+                self.out.write(self.frame)
+                self.frames += 1
+                if self.debug_mode:
+                    print(frames)
 
         # double check to see if car is back on
         if not self.debug_mode:
@@ -172,12 +173,12 @@ class DashCam:
 
         self.close_video_stream()
         if not self.debug_mode:
+            print("[DashCam] Goodbye!")
             os.system("sudo shutdown -h now")
 
     # when video gets too long, restart the video feed and double check that the available storage
     def restart_system(self):
-        if self.debug_mode:
-            print("Restart")
+        print("[DashCam] Looping Video. System will now restart")
         self.close_video_stream()
         # recall dashCam.py script from command line
         os.execv(sys.executable, ['python'] + sys.argv)
