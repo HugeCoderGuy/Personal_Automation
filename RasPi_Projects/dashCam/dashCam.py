@@ -159,8 +159,11 @@ class DashCam:
     def graceful_shutdown(self):
         car_off = time.time()
         print("[DashCam] Begining system Shutdown.")
+        
+        font = cv2.FONT_HERSHEY_SIMPLEX
         while time.time() - car_off <= 30:
             if not self.cancel_video_write:
+                cv2.putText(self.frame, "IGNITION OFF", (25, 50), font, 1, (0, 0, 255), 2, cv2.LINE_4)
                 self.out.write(self.frame)
                 self.frames += 1
                 if self.debug_mode:
@@ -246,7 +249,7 @@ class DashCam:
 
 if __name__ == "__main__":
     # framerate runs fine during testing. RasPi is a little funky and needs an awkward framerate for operation
-    dash = DashCam(8.4, clear_space=True, debug=False)
+    dash = DashCam(8.3, clear_space=True, debug=False)
 
     # start video capture and video writer in seperate threads
     dash.start_vid_thread()
