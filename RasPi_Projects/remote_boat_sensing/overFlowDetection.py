@@ -11,9 +11,9 @@ from gmail_info import contacts
 
 #TODO make sure pi is using least current necessary
 # pin defs
-sump_pin = 27
-bilge_pin = 22
-continue_from_boot_pin = 26  # botton left 2 pin if board is oriented so pins in top right
+sump_pin = 14
+bilge_pin = 22   # currently not in use because requries a adc
+continue_from_boot_pin = 4  
 
 # board setup
 gpio.setmode(gpio.BCM) # gpio numbers instead of board pin numbers
