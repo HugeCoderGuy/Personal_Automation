@@ -27,4 +27,11 @@ Now reboot your Raspberry Pi to test it:
 $ sudo reboot
 ```
 
-If you want to edit the script, short pin 26 to ground in the bottom left corner ![pi](pizero.png)
+If you want to cancel the script boot, short pin 4 to ground. For setting up the sensor, connect the brown wire to 3.3V, blue to GRND, and yellow to pin 14. The black pin (signal mode select) can remain disconnected. ![pi](pizero.png)
+
+
+Reference for sensor:
+- Brown = Vcc (3.3V)
+- Yellow = Signal Output (high when water sense, low when water low)
+- Blue = GND
+- Black = Signal Mode Select
