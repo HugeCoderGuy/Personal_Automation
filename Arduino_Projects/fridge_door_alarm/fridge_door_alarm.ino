@@ -334,11 +334,11 @@ void setup() {
     // Serial Communication
     Serial.begin(9600);
 }
-volatile bool play_song = false;
+volatile bool play_song = true;
 void loop() {
 //Serial.print(digitalRead(FRIDGE_PIN));
   if (play_song) {
-    delay(20000);
+    delay(35000);
     if (switch_songs){
       keyboardCat();
     }
@@ -346,7 +346,7 @@ void loop() {
       miiSong();
     }
     switch_songs = !switch_songs;
-    play_song = false;
+    play_song = checkFridgeState();
   }
   else {
     digitalWrite(BUZZER_PIN, LOW);

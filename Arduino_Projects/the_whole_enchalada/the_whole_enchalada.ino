@@ -13,10 +13,6 @@
 SoftwareSerial ESP8266(10, 11); // Rx,  Tx
 
 String myAPIkey = "6YCDUHSJGWKFG6L0";
-//String iq_air_key = "7cf2a06d-08f8-470d-9da2-7d63e31db776";
-//String aqi_url = "http://api.waqi.info/feed/Alameda/?token=6b47ef379c416b27e36c33d9e9d4095789221068";
-//String weatherbit_key = "47b0a5c7a0ba4c9bb10b4c6161315faa";
-
 
 // LCD Setup
 const int rs = 48, en = 49, d4 = 53, d5 = 52, d6 = 51, d7 = 50;
@@ -25,7 +21,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
 // security 
-int security = 8;                 // PIR Out pin 
+int security = 8;                 // PIR Out pin
 int security_butto = 19;
 bool pirState = false;
 bool pir_active = true;
@@ -210,9 +206,6 @@ void loop()
   updateLCD();
   LCDOnOff();
   securityOnOff();
-
-
-
 
 }
 
